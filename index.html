@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#10152a" />
+<title>The Ledger</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<style>
+  html, body { margin: 0; padding: 0; background: #10152a; }
+  #root { min-height: 100vh; }
+  #fallback { min-height:100vh; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:10px; color:#7b8bab; font-family:monospace; font-size:13px;
+    padding:24px; text-align:center; box-sizing:border-box; }
+  #fallback .err { color:#e08a80; max-width:340px; white-space:pre-wrap; text-align:left; }
+</style>
+
+<script>
+  window.__ledgerErrors = [];
+  window.addEventListener("error", function (e) {
+    window.__ledgerErrors.push((e && e.message) ? e.message : (e && e.filename ? e.filename + " failed to load" : "unknown error"));
+  }, true);
+  window.addEventListener("unhandledrejection", function (e) {
+    window.__ledgerErrors.push("Promise error: " + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+  });
+</script>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
+</head>
+<body>
+<div id="root"><div id="fallback"><div>loading the ledger&hellip;</div></div></div>
+
+<script>
+window.storage = {
+  get: async (key, shared) => {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return null;
+    return { key, value: raw, shared: !!shared };
+  },
+  set: async (key, value, shared) => {
+    localStorage.setItem(key, value);
+    return { key, value, shared: !!shared };
+  },
+  delete: async (key, shared) => {
+    localStorage.removeItem(key);
+    return { key, deleted: true, shared: !!shared };
+  },
+  list: async (prefix, shared) => {
+    const keys = Object.keys(localStorage).filter(k => !prefix || k.startsWith(prefix));
+    return { keys, prefix, shared: !!shared };
+  }
+};
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
+// Watchdog: if the app hasn't mounted within a few seconds, show diagnostics
+// instead of a silent blank screen.
+setTimeout(function () {
+  if (window.__ledgerMounted) return;
+  var fb = document.getElementById("fallback");
+  if (!fb) return;
+  var missing = [];
+  if (typeof React === "undefined") missing.push("React library did not load");
+  if (typeof ReactDOM === "undefined") missing.push("ReactDOM library did not load");
+  if (typeof Babel === "undefined") missing.push("Babel library did not load");
+  var msgs = missing.concat(window.__ledgerErrors || []);
+  if (msgs.length === 0) msgs = ["App did not finish loading for an unknown reason."];
+  fb.innerHTML = "<div>Something went wrong:</div><div class='err'>" + msgs.join("<br><br>") + "</div>";
+}, 4000);
+</script>
+
+<script type="text/babel" data-presets="react">
+try {
+  const { useState, useEffect, useCallback, useRef } = React;
+
+
+
+// ---- constants -------------------------------------------------------
+
+const DIFFICULTY = {
+  easy:   { label: "Easy",   xp: 10,  glyph: "I",   lootBoost: 1   },
+  medium: { label: "Medium", xp: 25,  glyph: "II",  lootBoost: 1.3 },
+  hard:   { label: "Hard",   xp: 50,  glyph: "III", lootBoost: 1.7 },
+  epic:   { label: "Epic",   xp: 100, glyph: "IV",  lootBoost: 2.5 },
+};
+
+const CATEGORIES = [
+  { id: "body",   label: "Body",   glyph: "\u2694" },
+  { id: "mind",   label: "Mind",   glyph: "\u2727" },
+  { id: "work",   label: "Work",   glyph: "\u2692" },
+  { id: "kin",    label: "Kin",    glyph: "\u2665" },
+  { id: "keep",   label: "Keep",   glyph: "\u2302" },
+  { id: "other",  label: "Other",  glyph: "\u2731" },
+];
+
+const catMap = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+
+const LOOT_TABLE = [
+  { rarity: "common",    tier: 0, weight: 50, color: "#9aa7c7", label: "Common",
+    names: ["Tarnished Coin", "Bent Compass", "Frayed Rope", "Chipped Flint", "Worn Map Scrap", "Cracked Waterskin", "Faded Journal Page"] },
+  { rarity: "uncommon",  tier: 1, weight: 28, color: "#4fb3a9", label: "Uncommon",
+    names: ["Vial of Starlight", "Polished Amber", "Sailor's Whistle", "Sunfaded Journal", "Brass Pocket Sundial", "Woven Luck Charm"] },
+  { rarity: "rare",      tier: 2, weight: 14, color: "#5b8ef2", label: "Rare",
+    names: ["Sapphire Shard", "Moonlit Lantern", "Silver Compass Rose", "Iron Tide Medallion", "Whisper-thread Cloak Pin"] },
+  { rarity: "epic",      tier: 3, weight: 6,  color: "#a45bd6", label: "Epic",
+    names: ["Dragon-scale Coin", "Phoenix Feather", "Rune-etched Blade", "Storm-bound Signet", "Gilded Hourglass"] },
+  { rarity: "legendary", tier: 4, weight: 2,  color: "#c9a24b", label: "Legendary",
+    names: ["Crown of the First Wanderer", "Heart of the Mountain", "Starforged Relic", "The Last Ember"] },
+];
+
+const LOOT_FLAVOR = {
+  "Tarnished Coin": "Worn smooth by countless hands before yours.",
+  "Bent Compass": "Points mostly north. Mostly.",
+  "Frayed Rope": "Just long enough to matter.",
+  "Chipped Flint": "Still sparks, if you're patient.",
+  "Worn Map Scrap": "Half a route to somewhere.",
+  "Cracked Waterskin": "Holds enough for one more mile.",
+  "Faded Journal Page": "Someone else's half-finished thought.",
+  "Vial of Starlight": "Cool to the touch, faintly humming.",
+  "Polished Amber": "An insect from an age you'll never see.",
+  "Sailor's Whistle": "Cuts through wind and worry alike.",
+  "Sunfaded Journal": "Pages gone soft with sun and salt.",
+  "Brass Pocket Sundial": "Tells time only when it feels like it.",
+  "Woven Luck Charm": "Knotted by someone who believed in you.",
+  "Sapphire Shard": "Cold blue light trapped in stone.",
+  "Moonlit Lantern": "Never quite goes dark.",
+  "Silver Compass Rose": "Always points toward what matters.",
+  "Iron Tide Medallion": "Heavy with old promises.",
+  "Whisper-thread Cloak Pin": "Keeps secrets, and cloaks.",
+  "Dragon-scale Coin": "Warm no matter the weather.",
+  "Phoenix Feather": "Smells faintly of woodsmoke and second chances.",
+  "Rune-etched Blade": "The runes shift when you're not looking.",
+  "Storm-bound Signet": "Crackles faintly before rain.",
+  "Gilded Hourglass": "The sand never seems to run out.",
+  "Crown of the First Wanderer": "Worn by whoever set out first.",
+  "Heart of the Mountain": "Beats once a year, they say.",
+  "Starforged Relic": "Fell from somewhere far, meant for someone specific.",
+  "The Last Ember": "Said to never fully go out.",
+};
+
+const TOTAL_UNIQUE_LOOT = LOOT_TABLE.reduce((sum, r) => sum + r.names.length, 0);
+
+const TITLES = [
+  { min: 1,  title: "Greenhorn" },
+  { min: 2,  title: "Wayfarer" },
+  { min: 4,  title: "Adventurer" },
+  { min: 7,  title: "Vanguard" },
+  { min: 10, title: "Champion" },
+  { min: 15, title: "Legend" },
+];
+
+function getTitle(level) {
+  let t = TITLES[0].title;
+  for (const row of TITLES) if (level >= row.min) t = row.title;
+  return t;
+}
+
+const ACHIEVEMENTS = [
+  { id: "first_blood", label: "First Blood", desc: "Complete your first quest", glyph: "\u2726",
+    check: s => s.totalCompleted >= 1 },
+  { id: "ten_quests",  label: "Journeyman", desc: "Complete 10 quests", glyph: "\u2694",
+    check: s => s.totalCompleted >= 10 },
+  { id: "quarter_century", label: "Seasoned", desc: "Complete 25 quests", glyph: "\u2699",
+    check: s => s.totalCompleted >= 25 },
+  { id: "grinder", label: "Relentless", desc: "Complete 50 quests", glyph: "\u269C",
+    check: s => s.totalCompleted >= 50 },
+  { id: "epic_slayer", label: "Epic Slayer", desc: "Complete an Epic quest", glyph: "\u25C6",
+    check: s => s.completedEpic >= 1 },
+  { id: "three_streak", label: "Warming Up", desc: "Reach a 3-day streak", glyph: "\u2739",
+    check: s => s.streak >= 3 },
+  { id: "week_streak", label: "Steadfast", desc: "Reach a 7-day streak", glyph: "\u2666",
+    check: s => s.streak >= 7 },
+  { id: "fortnight_streak", label: "Unbroken", desc: "Reach a 14-day streak", glyph: "\u2721",
+    check: s => s.streak >= 14 },
+  { id: "month_streak", label: "Iron Will", desc: "Reach a 30-day streak", glyph: "\u2638",
+    check: s => s.streak >= 30 },
+  { id: "level5",  label: "Rising Star", desc: "Reach level 5", glyph: "\u2605",
+    check: s => s.level >= 5 },
+  { id: "level10", label: "Champion Rising", desc: "Reach level 10", glyph: "\u2729",
+    check: s => s.level >= 10 },
+  { id: "level15", label: "Legend in the Making", desc: "Reach level 15", glyph: "\u269D",
+    check: s => s.level >= 15 },
+  { id: "collector", label: "Collector", desc: "Earn 5 pieces of loot", glyph: "\u2756",
+    check: s => s.lootCount >= 5 },
+  { id: "hoarder", label: "Hoarder", desc: "Earn 20 pieces of loot", glyph: "\u25C9",
+    check: s => s.lootCount >= 20 },
+  { id: "rare_find", label: "Glimmer of Fortune", desc: "Find a Rare item or better", glyph: "\u25C7",
+    check: s => s.hasRare },
+  { id: "epic_find", label: "Deep Pockets", desc: "Find an Epic item or better", glyph: "\u2B22",
+    check: s => s.hasEpic },
+  { id: "legendary_find", label: "Storied", desc: "Find a Legendary item", glyph: "\u2B50",
+    check: s => s.hasLegendary },
+  { id: "completionist", label: "Completionist", desc: `Discover all ${TOTAL_UNIQUE_LOOT} items`, glyph: "\u2318",
+    check: s => s.uniqueLootCount >= TOTAL_UNIQUE_LOOT },
+];
+
+const CONFETTI_COLORS = ["#c9a24b", "#4fb3a9", "#5b8ef2", "#a45bd6", "#eef0f5"];
+
+const QUEST_LIBRARY = {
+  body: [
+    { title: "Take a 20-minute walk", difficulty: "easy" },
+    { title: "Drink 8 glasses of water today", difficulty: "easy" },
+    { title: "Try a new stretching routine", difficulty: "easy" },
+    { title: "Do a 15-minute home workout", difficulty: "medium" },
+    { title: "Go for a run or bike ride", difficulty: "hard" },
+  ],
+  mind: [
+    { title: "Read 20 pages of a book", difficulty: "easy" },
+    { title: "Do a 10-minute meditation", difficulty: "easy" },
+    { title: "Learn 5 new words in a language you're studying", difficulty: "easy" },
+    { title: "Solve a puzzle or brain teaser", difficulty: "medium" },
+    { title: "Spend an hour learning a new skill", difficulty: "hard" },
+  ],
+  work: [
+    { title: "Plan tomorrow's top 3 priorities", difficulty: "easy" },
+    { title: "Organize your desk or workspace", difficulty: "easy" },
+    { title: "Clear your inbox to zero", difficulty: "medium" },
+    { title: "Tackle your most-avoided task", difficulty: "hard" },
+    { title: "Finish a project you've been putting off", difficulty: "epic" },
+  ],
+  kin: [
+    { title: "Call or text a friend you haven't talked to in a while", difficulty: "easy" },
+    { title: "Write a thank-you note to someone", difficulty: "easy" },
+    { title: "Have a screen-free dinner with someone", difficulty: "easy" },
+    { title: "Do something kind for a family member", difficulty: "medium" },
+    { title: "Plan a get-together with friends or family", difficulty: "medium" },
+  ],
+  keep: [
+    { title: "Make your bed", difficulty: "easy" },
+    { title: "Do a 10-minute declutter of one space", difficulty: "easy" },
+    { title: "Do a load of laundry start to finish", difficulty: "easy" },
+    { title: "Deep clean the kitchen", difficulty: "medium" },
+    { title: "Tackle a home project you've been avoiding", difficulty: "hard" },
+  ],
+  other: [
+    { title: "Spend 20 minutes on a hobby", difficulty: "easy" },
+    { title: "Do one thing just for fun", difficulty: "easy" },
+    { title: "Unplug from screens for an hour", difficulty: "medium" },
+    { title: "Try something you've never done before", difficulty: "medium" },
+    { title: "Step outside your comfort zone in a small way", difficulty: "medium" },
+  ],
+};
+
+function flattenLibrary() {
+  return Object.entries(QUEST_LIBRARY).flatMap(([cat, arr]) => arr.map(q => ({ ...q, category: cat })));
+}
+
+function pickRandom(arr, n) {
+  const copy = [...arr];
+  const result = [];
+  while (result.length < n && copy.length > 0) {
+    const idx = Math.floor(Math.random() * copy.length);
+    result.push(copy.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
+const TABS = [
+  { id: "home",    label: "Home",    glyph: "\u2302" },
+  { id: "daily",   label: "Quests",  glyph: "\u2694" },
+  { id: "history", label: "History", glyph: "\u29D6" },
+  { id: "you",     label: "You",     glyph: "\u2605" },
+];
+
+function xpForLevel(level) { return 80 + (level - 1) * 40; }
+
+function levelFromTotalXp(totalXp) {
+  let level = 1;
+  let remaining = totalXp;
+  while (remaining >= xpForLevel(level)) {
+    remaining -= xpForLevel(level);
+    level += 1;
+  }
+  return { level, into: remaining, need: xpForLevel(level) };
+}
+
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+function todayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
+
+function friendlyDate(ts) {
+  const d = new Date(ts);
+  const key = todayKey(d);
+  if (key === todayKey()) return "Today";
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  if (key === todayKey(y)) return "Yesterday";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function rollLoot(difficultyKey) {
+  const boost = DIFFICULTY[difficultyKey].lootBoost;
+  const adjusted = LOOT_TABLE.map(row => ({ ...row, w: row.tier >= 2 ? row.weight * boost : row.weight }));
+  const total = adjusted.reduce((sum, r) => sum + r.w, 0);
+  let roll = Math.random() * total;
+  for (const row of adjusted) {
+    if (roll < row.w) {
+      const name = row.names[Math.floor(Math.random() * row.names.length)];
+      return { rarity: row.rarity, tier: row.tier, label: row.label, color: row.color, name, flavor: LOOT_FLAVOR[name] || "" };
+    }
+    roll -= row.w;
+  }
+  const last = adjusted[0];
+  const name = last.names[0];
+  return { rarity: last.rarity, tier: last.tier, label: last.label, color: last.color, name, flavor: LOOT_FLAVOR[name] || "" };
+}
+
+// ---- storage helpers ---------------------------------------------------
+
+async function loadState() {
+  try {
+    const res = await window.storage.get("quest-ledger:state");
+    if (res && res.value) return JSON.parse(res.value);
+  } catch (e) {}
+  return null;
+}
+
+async function saveState(state) {
+  try { await window.storage.set("quest-ledger:state", JSON.stringify(state)); }
+  catch (e) { console.error("save failed", e); }
+}
+
+// ---- root component -----------------------------------------------------
+
+function QuestLedger() {
+  const [page, setPage] = useState("home");
+  const [quests, setQuests] = useState([]);
+  const [totalXp, setTotalXp] = useState(0);
+  const [completedDays, setCompletedDays] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [unlockedAchievements, setUnlockedAchievements] = useState([]);
+  const [discoveredNames, setDiscoveredNames] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [form, setForm] = useState({ title: "", category: "body", difficulty: "easy" });
+
+  const [reveal, setReveal] = useState(null);
+  const [levelUp, setLevelUp] = useState(null);
+  const [toastQueue, setToastQueue] = useState([]);
+  const [confetti, setConfetti] = useState([]);
+  const [flash, setFlash] = useState(false);
+  const [packMessage, setPackMessage] = useState(null);
+  const packTimer = useRef(null);
+
+  const revealTimer = useRef(null);
+  const confettiTimer = useRef(null);
+  const toastTimer = useRef(null);
+
+  useEffect(() => {
+    (async () => {
+      const s = await loadState();
+      if (s) {
+        setQuests(s.quests || []);
+        setTotalXp(s.totalXp || 0);
+        setCompletedDays(s.completedDays || []);
+        setInventory(s.inventory || []);
+        setUnlockedAchievements(s.unlockedAchievements || []);
+        setDiscoveredNames(s.discoveredNames || []);
+      }
+      setLoaded(true);
+    })();
+  }, []);
+
+  const persist = useCallback((next) => saveState(next), []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    persist({ quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames });
+  }, [quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames, loaded, persist]);
+
+  useEffect(() => {
+    if (toastQueue.length === 0) return;
+    if (toastTimer.current) return;
+    toastTimer.current = setTimeout(() => {
+      setToastQueue(q => q.slice(1));
+      toastTimer.current = null;
+    }, 2600);
+  }, [toastQueue]);
+
+  const { level, into, need } = levelFromTotalXp(totalXp);
+  const pct = Math.min(100, Math.round((into / need) * 100));
+  const title = getTitle(level);
+
+  function burstConfetti() {
+    const particles = Array.from({ length: 26 }, () => ({
+      id: uid(), left: Math.random() * 100, delay: Math.random() * 200,
+      duration: 900 + Math.random() * 700,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      rotate: Math.random() * 360, size: 6 + Math.random() * 6,
+    }));
+    setConfetti(particles);
+    if (confettiTimer.current) clearTimeout(confettiTimer.current);
+    confettiTimer.current = setTimeout(() => setConfetti([]), 1700);
+  }
+
+  function addQuest(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!form.title.trim()) return;
+    const q = {
+      id: uid(), title: form.title.trim(), category: form.category, difficulty: form.difficulty,
+      status: "active", createdAt: Date.now(), completedAt: null,
+    };
+    setQuests(prev => [q, ...prev]);
+    setForm({ title: "", category: form.category, difficulty: form.difficulty });
+    setShowForm(false);
+  }
+
+  function rollQuestPack() {
+    const existingTitles = new Set(quests.filter(q => q.status === "active").map(q => q.title));
+    const full = flattenLibrary();
+    const pool = full.filter(q => !existingTitles.has(q.title));
+    const picks = pickRandom(pool.length >= 3 ? pool : full, 3);
+    const now = Date.now();
+    const newQuests = picks.map((p, i) => ({
+      id: uid(), title: p.title, category: p.category, difficulty: p.difficulty,
+      status: "active", createdAt: now + i, completedAt: null,
+    }));
+    setQuests(prev => [...newQuests, ...prev]);
+    setPackMessage(`+${newQuests.length} quests added to your board`);
+    if (packTimer.current) clearTimeout(packTimer.current);
+    packTimer.current = setTimeout(() => setPackMessage(null), 2400);
+  }
+
+  function computeStreak(days) {
+    if (days.length === 0) return 0;
+    const set = new Set(days);
+    let streak = 0;
+    let d = new Date();
+    if (!set.has(todayKey(d))) d.setDate(d.getDate() - 1);
+    while (set.has(todayKey(d))) { streak += 1; d.setDate(d.getDate() - 1); }
+    return streak;
+  }
+
+  function completeQuest(id) {
+    const q = quests.find(q => q.id === id);
+    if (!q || q.status === "completed") return;
+
+    const key = todayKey();
+    const todayCountBefore = quests.filter(
+      x => x.status === "completed" && x.completedAt && todayKey(new Date(x.completedAt)) === key
+    ).length;
+
+    const baseXp = DIFFICULTY[q.difficulty].xp;
+    const isCrit = Math.random() < 0.15;
+    const comboBonus = todayCountBefore > 0 ? Math.min(5 * todayCountBefore, 25) : 0;
+    const critXp = isCrit ? baseXp : 0;
+    const totalGain = baseXp + critXp + comboBonus;
+    const loot = rollLoot(q.difficulty);
+    const now = Date.now();
+
+    const nextQuests = quests.map(x => x.id === id ? { ...x, status: "completed", completedAt: now } : x);
+    const nextTotalXp = totalXp + totalGain;
+    const nextCompletedDays = completedDays.includes(key) ? completedDays : [...completedDays, key].sort();
+    const nextInventory = [...inventory, { id: uid(), ...loot, questTitle: q.title, earnedAt: now }];
+
+    setQuests(nextQuests);
+    setTotalXp(nextTotalXp);
+    setCompletedDays(nextCompletedDays);
+    setInventory(nextInventory);
+
+    const nextDiscovered = discoveredNames.includes(loot.name) ? discoveredNames : [...discoveredNames, loot.name];
+    setDiscoveredNames(nextDiscovered);
+
+    const before = levelFromTotalXp(totalXp).level;
+    const after = levelFromTotalXp(nextTotalXp).level;
+
+    const streakAfter = computeStreak(nextCompletedDays);
+    const snapshot = {
+      totalCompleted: nextQuests.filter(x => x.status === "completed").length,
+      completedEpic: nextQuests.filter(x => x.status === "completed" && x.difficulty === "epic").length,
+      streak: streakAfter, lootCount: nextInventory.length, level: after,
+      uniqueLootCount: nextDiscovered.length,
+      hasRare: nextInventory.some(i => i.tier >= 2),
+      hasEpic: nextInventory.some(i => i.tier >= 3),
+      hasLegendary: nextInventory.some(i => i.tier >= 4),
+    };
+    const newlyUnlocked = ACHIEVEMENTS.filter(a => !unlockedAchievements.includes(a.id) && a.check(snapshot));
+    if (newlyUnlocked.length > 0) {
+      setUnlockedAchievements(prev => [...prev, ...newlyUnlocked.map(a => a.id)]);
+      setToastQueue(prev => [...prev, ...newlyUnlocked]);
+    }
+
+    setReveal({
+      questTitle: q.title, baseXp, comboBonus, isCrit, totalGain,
+      comboCount: todayCountBefore + 1, loot,
+    });
+    burstConfetti();
+    if (isCrit) { setFlash(true); setTimeout(() => setFlash(false), 380); }
+    if (revealTimer.current) clearTimeout(revealTimer.current);
+    revealTimer.current = setTimeout(() => {
+      setReveal(null);
+      if (after > before) setLevelUp({ level: after, title: getTitle(after) });
+    }, 2000);
+  }
+
+  function reopenQuest(id) {
+    setQuests(prev => prev.map(x => {
+      if (x.id !== id) return x;
+      if (x.status === "completed") setTotalXp(t => Math.max(0, t - DIFFICULTY[x.difficulty].xp));
+      return { ...x, status: "active", completedAt: null };
+    }));
+  }
+
+  function deleteQuest(id) {
+    const q = quests.find(q => q.id === id);
+    if (q && q.status === "completed") setTotalXp(t => Math.max(0, t - DIFFICULTY[q.difficulty].xp));
+    setQuests(prev => prev.filter(x => x.id !== id));
+  }
+
+  const streak = computeStreak(completedDays);
+  const active = quests.filter(q => q.status === "active");
+  const completed = quests.filter(q => q.status === "completed").sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+
+  const shared = {
+    quests, active, completed, streak, level, into, need, pct, title, totalXp,
+    inventory, unlockedAchievements, discoveredNames, filter, setFilter, showForm, setShowForm,
+    form, setForm, addQuest, completeQuest, reopenQuest, deleteQuest, setPage,
+    rollQuestPack,
+  };
+
+  if (!loaded) {
+    return (
+      <div style={styles.page}>
+        <div style={{ ...styles.body, alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+          <div style={{ color: "#7b8bab", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, letterSpacing: "0.08em" }}>
+            unrolling the ledger…
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.page}>
+      <style>{fontImports}</style>
+      <div style={styles.vignette} />
+      {flash && <div style={styles.critFlash} />}
+
+      <div style={styles.body}>
+        {page === "home" && <HomePage {...shared} />}
+        {page === "daily" && <DailyPage {...shared} />}
+        {page === "history" && <HistoryPage {...shared} />}
+        {page === "you" && <YouPage {...shared} />}
+      </div>
+
+      <nav style={styles.bottomNav}>
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setPage(t.id)}
+            style={{ ...styles.navBtn, ...(page === t.id ? styles.navBtnActive : {}) }}
+          >
+            <div style={{ fontSize: 17 }}>{t.glyph}</div>
+            <div style={{ fontSize: 10.5, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.05em" }}>{t.label}</div>
+          </button>
+        ))}
+      </nav>
+
+      {confetti.length > 0 && (
+        <div style={styles.confettiLayer}>
+          {confetti.map(p => (
+            <div key={p.id} style={{
+              position: "absolute", left: `${p.left}%`, top: "-10px", width: p.size, height: p.size * 1.6,
+              background: p.color, animation: `confetti-fall ${p.duration}ms ease-in ${p.delay}ms forwards`,
+              transform: `rotate(${p.rotate}deg)`, borderRadius: 2,
+            }} />
+          ))}
+        </div>
+      )}
+
+      {reveal && (
+        <div style={styles.revealOverlay}>
+          <div style={{ ...styles.revealCard, borderColor: reveal.loot.color }}>
+            {reveal.isCrit && <div style={styles.critLabel}>CRITICAL SUCCESS</div>}
+            <div style={styles.revealQuestTitle}>{reveal.questTitle}</div>
+            <div style={{ ...styles.lootRarity, color: reveal.loot.color }}>{reveal.loot.label} ITEM FOUND</div>
+            <div style={styles.lootName}>{reveal.loot.name}</div>
+            <div style={styles.xpBreakdown}>
+              <span>base +{reveal.baseXp}xp</span>
+              {reveal.isCrit && <span style={{ color: "#c9a24b" }}>crit +{reveal.baseXp}xp</span>}
+              {reveal.comboBonus > 0 && <span style={{ color: "#4fb3a9" }}>combo x{reveal.comboCount} +{reveal.comboBonus}xp</span>}
+            </div>
+            <div style={styles.totalXp}>+{reveal.totalGain} XP</div>
+          </div>
+        </div>
+      )}
+
+      {levelUp && (
+        <div style={styles.levelUpOverlay}>
+          <div style={styles.levelUpCard}>
+            <div style={styles.levelUpEyebrow}>LEVEL UP</div>
+            <div style={styles.levelUpNumber}>{levelUp.level}</div>
+            <div style={styles.levelUpTitle}>You are now a {levelUp.title}</div>
+            <button style={styles.primaryBtn} onClick={() => setLevelUp(null)}>Continue</button>
+          </div>
+        </div>
+      )}
+
+      {packMessage && (
+        <div style={styles.packToastWrap}>
+          <div style={styles.packToast}>{"\u2685"} {packMessage}</div>
+        </div>
+      )}
+
+      {toastQueue.length > 0 && (
+        <div style={styles.toastWrap}>
+          <div style={styles.toast}>
+            <div style={styles.toastGlyph}>{toastQueue[0].glyph}</div>
+            <div>
+              <div style={styles.toastLabel}>Badge unlocked: {toastQueue[0].label}</div>
+              <div style={styles.toastDesc}>{toastQueue[0].desc}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- pages -----------------------------------------------------
+
+function HomePage({ active, completed, streak, level, into, need, pct, title, setPage, completeQuest }) {
+  const todaysActive = active.slice(0, 3);
+  const recentCompleted = completed.slice(0, 2);
+  return (
+    <>
+      <header style={styles.header}>
+        <div>
+          <div style={styles.eyebrow}>THE LEDGER</div>
+          <h1 style={styles.h1}>Welcome back</h1>
+          <div style={styles.titleLine}>{title} &middot; Level {level}</div>
+        </div>
+        <LevelRing pct={pct} level={level} />
+      </header>
+
+      <div style={styles.xpLine}>
+        {into} / {need} xp to next level
+        <div style={{ color: streak > 0 ? "#c9a24b" : "#5a6690", marginTop: 2 }}>
+          {streak > 0 ? `\uD83D\uDD25 ${streak} day streak` : "no streak yet — complete a quest today"}
+        </div>
+      </div>
+
+      <section style={{ marginTop: 26 }}>
+        <div style={styles.rowBetween}>
+          <div style={styles.sectionLabel}>Today's Quests</div>
+          <button style={styles.linkBtn} onClick={() => setPage("daily")}>View all &rarr;</button>
+        </div>
+        {todaysActive.length === 0 ? (
+          <div style={styles.empty}>Nothing queued up. Head to Quests to log something.</div>
+        ) : (
+          <div style={styles.list}>
+            {todaysActive.map(q => (
+              <QuestRow key={q.id} q={q} onComplete={() => completeQuest(q.id)} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section style={{ marginTop: 26 }}>
+        <div style={styles.rowBetween}>
+          <div style={styles.sectionLabel}>Recent History</div>
+          <button style={styles.linkBtn} onClick={() => setPage("history")}>View all &rarr;</button>
+        </div>
+        {recentCompleted.length === 0 ? (
+          <div style={styles.empty}>No completed quests yet.</div>
+        ) : (
+          <div style={styles.list}>
+            {recentCompleted.map(q => <QuestRow key={q.id} q={q} done />)}
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function DailyPage({ active, filter, setFilter, showForm, setShowForm, form, setForm, addQuest, completeQuest, deleteQuest, rollQuestPack }) {
+  const visible = filter === "all" ? active : active.filter(q => q.category === filter);
+  return (
+    <>
+      <header style={styles.pageHeader}>
+        <div style={styles.eyebrow}>DAILY QUESTS</div>
+        <h1 style={styles.h1}>The Board</h1>
+      </header>
+
+      <div style={styles.filterRow}>
+        <button onClick={() => setFilter("all")} style={{ ...styles.filterChip, ...(filter === "all" ? styles.filterChipActive : {}) }}>All</button>
+        {CATEGORIES.map(c => (
+          <button key={c.id} onClick={() => setFilter(c.id)} style={{ ...styles.filterChip, ...(filter === c.id ? styles.filterChipActive : {}) }}>
+            <span style={{ marginRight: 5 }}>{c.glyph}</span>{c.label}
+          </button>
+        ))}
+      </div>
+
+      {!showForm ? (
+        <div style={styles.questBtnRow}>
+          <button style={styles.newQuestBtn} onClick={() => setShowForm(true)}>+ Log a new quest</button>
+          <button style={styles.rollBtn} onClick={rollQuestPack} title="Draw 3 random quests">
+            {"\u2685"} Roll 3 Quests
+          </button>
+        </div>
+      ) : (
+        <div style={styles.form}>
+          <input
+            autoFocus
+            placeholder="What's the quest? e.g. Run 3 miles"
+            value={form.title}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            onKeyDown={e => { if (e.key === "Enter") addQuest(e); }}
+            style={styles.input}
+          />
+          <div style={styles.formRow}>
+            <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} style={styles.select}>
+              {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.glyph} {c.label}</option>)}
+            </select>
+            <select value={form.difficulty} onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))} style={styles.select}>
+              {Object.entries(DIFFICULTY).map(([k, v]) => <option key={k} value={k}>{v.glyph} {v.label} &middot; {v.xp}xp</option>)}
+            </select>
+          </div>
+          <div style={styles.formRow}>
+            <button type="button" style={styles.primaryBtn} onClick={addQuest}>Accept Quest</button>
+            <button type="button" style={styles.ghostBtn} onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <section style={{ marginTop: 24 }}>
+        <div style={styles.sectionLabel}>Active — {visible.length}</div>
+        {visible.length === 0 ? (
+          <div style={styles.empty}>No open quests here. The board is clear.</div>
+        ) : (
+          <div style={styles.list}>
+            {visible.map(q => (
+              <QuestRow key={q.id} q={q} onComplete={() => completeQuest(q.id)} onDelete={() => deleteQuest(q.id)} />
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function HistoryPage({ completed, filter, setFilter, reopenQuest, deleteQuest, totalXp }) {
+  const visible = filter === "all" ? completed : completed.filter(q => q.category === filter);
+  const groups = [];
+  let lastKey = null;
+  visible.forEach(q => {
+    const label = friendlyDate(q.completedAt);
+    if (label !== lastKey) { groups.push({ label, items: [] }); lastKey = label; }
+    groups[groups.length - 1].items.push(q);
+  });
+
+  return (
+    <>
+      <header style={styles.pageHeader}>
+        <div style={styles.eyebrow}>QUEST HISTORY</div>
+        <h1 style={styles.h1}>The Archive</h1>
+        <div style={styles.titleLine}>{completed.length} quests completed &middot; {totalXp} xp earned lifetime</div>
+      </header>
+
+      <div style={styles.filterRow}>
+        <button onClick={() => setFilter("all")} style={{ ...styles.filterChip, ...(filter === "all" ? styles.filterChipActive : {}) }}>All</button>
+        {CATEGORIES.map(c => (
+          <button key={c.id} onClick={() => setFilter(c.id)} style={{ ...styles.filterChip, ...(filter === c.id ? styles.filterChipActive : {}) }}>
+            <span style={{ marginRight: 5 }}>{c.glyph}</span>{c.label}
+          </button>
+        ))}
+      </div>
+
+      {groups.length === 0 ? (
+        <div style={{ ...styles.empty, marginTop: 20 }}>Nothing in the archive yet. Complete a quest to start your log.</div>
+      ) : (
+        groups.map(g => (
+          <section key={g.label} style={{ marginTop: 22 }}>
+            <div style={styles.sectionLabel}>{g.label}</div>
+            <div style={styles.list}>
+              {g.items.map(q => (
+                <QuestRow key={q.id} q={q} done onReopen={() => reopenQuest(q.id)} onDelete={() => deleteQuest(q.id)} />
+              ))}
+            </div>
+          </section>
+        ))
+      )}
+    </>
+  );
+}
+
+function YouPage({ level, into, need, pct, title, totalXp, streak, completed, inventory, unlockedAchievements, discoveredNames }) {
+  const totalCompleted = completed.length;
+  const grouped = groupInventory(inventory);
+  const rarityCounts = LOOT_TABLE.map(row => ({
+    ...row,
+    found: discoveredNames.filter(n => row.names.includes(n)).length,
+    total: row.names.length,
+  }));
+  return (
+    <>
+      <header style={styles.pageHeader}>
+        <div style={styles.eyebrow}>YOU</div>
+        <h1 style={styles.h1}>{title}</h1>
+      </header>
+
+      <div style={styles.youRingWrap}>
+        <LevelRing pct={pct} level={level} size={110} />
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#7b8bab", marginTop: 8 }}>
+          {into} / {need} xp to level {level + 1}
+        </div>
+      </div>
+
+      <div style={styles.statGrid}>
+        <StatBlock label="Total XP" value={totalXp} />
+        <StatBlock label="Quests Done" value={totalCompleted} />
+        <StatBlock label="Day Streak" value={streak} />
+        <StatBlock label="Loot Found" value={inventory.length} />
+      </div>
+
+      <section style={{ marginTop: 26 }}>
+        <div style={styles.rowBetween}>
+          <div style={styles.sectionLabel}>Satchel</div>
+          <div style={styles.compendiumTag}>{discoveredNames.length}/{TOTAL_UNIQUE_LOOT} discovered</div>
+        </div>
+
+        <div style={styles.rarityLegend}>
+          {rarityCounts.map(r => (
+            <div key={r.rarity} style={styles.rarityLegendItem}>
+              <span style={{ ...styles.rarityDot, background: r.color }} />
+              <span style={{ color: "#9aa7c7" }}>{r.label}</span>
+              <span style={{ color: r.found > 0 ? "#eef0f5" : "#5a6690", fontFamily: "'IBM Plex Mono', monospace" }}>{r.found}/{r.total}</span>
+            </div>
+          ))}
+        </div>
+
+        {grouped.length === 0 ? (
+          <div style={styles.empty}>Empty for now — complete a quest to find your first item.</div>
+        ) : (
+          <div style={styles.list}>
+            {grouped.map(item => (
+              <div key={item.name} style={{ ...styles.lootRow, borderColor: item.color }}>
+                <div style={{ ...styles.lootRowRarityBar, background: item.color }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={styles.lootRowTop}>
+                    <span style={styles.lootRowName}>{item.name}</span>
+                    {item.count > 1 && <span style={styles.lootRowCount}>&times;{item.count}</span>}
+                  </div>
+                  <div style={{ ...styles.lootRowRarity, color: item.color }}>{item.label.toUpperCase()}</div>
+                  {item.flavor && <div style={styles.lootRowFlavor}>{item.flavor}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section style={{ marginTop: 26 }}>
+        <div style={styles.sectionLabel}>Badges — {unlockedAchievements.length}/{ACHIEVEMENTS.length}</div>
+        <div style={styles.badgeGrid}>
+          {ACHIEVEMENTS.map(a => {
+            const unlocked = unlockedAchievements.includes(a.id);
+            return (
+              <div key={a.id} style={{ ...styles.badge, opacity: unlocked ? 1 : 0.35 }}>
+                <div style={{ ...styles.badgeGlyph, color: unlocked ? "#c9a24b" : "#5a6690" }}>{a.glyph}</div>
+                <div style={{ fontSize: 12, color: unlocked ? "#eef0f5" : "#5a6690" }}>{a.label}</div>
+                <div style={{ fontSize: 10.5, color: "#5a6690" }}>{a.desc}</div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function groupInventory(inventory) {
+  const map = new Map();
+  [...inventory].reverse().forEach(item => {
+    if (!map.has(item.name)) {
+      map.set(item.name, { ...item, count: 1 });
+    } else {
+      map.get(item.name).count += 1;
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => b.tier - a.tier || b.count - a.count);
+}
+
+// ---- small components -----------------------------------------------------
+
+function LevelRing({ pct, level, size = 64 }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size}>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#2a3358" strokeWidth="3" />
+      <circle
+        cx="50" cy="50" r="46" fill="none" stroke="#c9a24b" strokeWidth="3"
+        strokeDasharray={`${2 * Math.PI * 46}`}
+        strokeDashoffset={`${2 * Math.PI * 46 * (1 - pct / 100)}`}
+        strokeLinecap="round" transform="rotate(-90 50 50)"
+        style={{ transition: "stroke-dashoffset 500ms ease" }}
+      />
+      <text x="50" y="46" textAnchor="middle" fill="#eef0f5" fontSize="22" fontFamily="'Fraunces', serif">{level}</text>
+      <text x="50" y="63" textAnchor="middle" fill="#7b8bab" fontSize="9" letterSpacing="1" fontFamily="'IBM Plex Mono', monospace">LEVEL</text>
+    </svg>
+  );
+}
+
+function StatBlock({ label, value }) {
+  return (
+    <div style={styles.statBlock}>
+      <div style={styles.statValue}>{value}</div>
+      <div style={styles.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+function QuestRow({ q, done, onComplete, onReopen, onDelete }) {
+  const cat = catMap[q.category];
+  const diff = DIFFICULTY[q.difficulty];
+  return (
+    <div style={{ ...styles.card, ...(done ? styles.cardDone : {}) }}>
+      {(onComplete || onReopen) && (
+        <button onClick={done ? onReopen : onComplete} title={done ? "Reopen" : "Mark complete"} style={{ ...styles.checkBtn, ...(done ? styles.checkBtnDone : {}) }}>
+          {done ? "\u2713" : ""}
+        </button>
+      )}
+      {!onComplete && !onReopen && (
+        <div style={{ ...styles.checkBtn, ...(done ? styles.checkBtnDone : {}) }}>{done ? "\u2713" : ""}</div>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ ...styles.cardTitle, ...(done ? styles.cardTitleDone : {}) }}>{q.title}</div>
+        <div style={styles.cardMeta}>
+          <span>{cat.glyph} {cat.label}</span>
+          <span style={styles.metaDot}>&middot;</span>
+          <span>{diff.glyph} {diff.label}</span>
+          <span style={styles.metaDot}>&middot;</span>
+          <span style={styles.metaXp}>{diff.xp} xp</span>
+        </div>
+      </div>
+      {onDelete && <button onClick={onDelete} title="Remove" style={styles.deleteBtn}>&times;</button>}
+    </div>
+  );
+}
+
+// ---- styles -----------------------------------------------------
+
+const fontImports = `
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+input::placeholder { color: #5a6690; }
+select { -webkit-appearance: none; appearance: none; }
+@keyframes seal-pop {
+  0% { opacity: 0; transform: scale(0.85) translateY(8px); }
+  15% { opacity: 1; transform: scale(1.03) translateY(0); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1) translateY(-6px); }
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(420px) rotate(340deg); opacity: 0; }
+}
+@keyframes levelup-in {
+  0% { opacity: 0; transform: scale(0.8); }
+  60% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes toast-in {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes crit-flash {
+  0% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+`;
+
+const styles = {
+  page: { minHeight: "100vh", background: "radial-gradient(ellipse at top, #1a2140 0%, #10152a 55%, #0b0e1e 100%)", fontFamily: "'IBM Plex Sans', sans-serif", position: "relative", overflow: "hidden" },
+  vignette: { position: "fixed", inset: 0, pointerEvents: "none", boxShadow: "inset 0 0 160px rgba(0,0,0,0.55)" },
+  critFlash: { position: "fixed", inset: 0, background: "radial-gradient(ellipse at center, rgba(201,162,75,0.5), transparent 70%)", animation: "crit-flash 380ms ease-out forwards", zIndex: 15, pointerEvents: "none" },
+  body: { maxWidth: 640, margin: "0 auto", padding: "28px 18px 100px", position: "relative", zIndex: 1 },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid #262e52", paddingBottom: 18 },
+  pageHeader: { borderBottom: "1px solid #262e52", paddingBottom: 16, marginBottom: 4 },
+  eyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.2em", color: "#c9a24b", marginBottom: 4 },
+  h1: { fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 28, color: "#eef0f5", margin: 0, fontStyle: "italic" },
+  titleLine: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: "#7b8bab", marginTop: 5, letterSpacing: "0.04em" },
+  xpLine: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: "#7b8bab", marginTop: 14, textAlign: "right" },
+  rowBetween: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 },
+  linkBtn: { background: "transparent", border: "none", color: "#c9a24b", fontSize: 12.5, fontFamily: "'IBM Plex Mono', monospace", cursor: "pointer", padding: 0 },
+  youRingWrap: { display: "flex", flexDirection: "column", alignItems: "center", marginTop: 22 },
+  statGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 22 },
+  statBlock: { background: "#161d3a", border: "1px solid #232c52", borderRadius: 10, padding: "14px 16px" },
+  statValue: { fontFamily: "'Fraunces', serif", fontSize: 26, color: "#eef0f5", fontWeight: 600 },
+  statLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "#7b8bab", letterSpacing: "0.08em", marginTop: 2, textTransform: "uppercase" },
+  lootGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 },
+  lootChip: { display: "flex", flexDirection: "column", gap: 2, background: "#161d3a", border: "1px solid", borderRadius: 8, padding: "8px 10px" },
+  compendiumTag: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#7b8bab", background: "#161d3a", border: "1px solid #2a3358", borderRadius: 20, padding: "4px 10px" },
+  rarityLegend: { display: "flex", flexWrap: "wrap", gap: "6px 14px", marginBottom: 14, padding: "10px 12px", background: "#12172e", border: "1px solid #232c52", borderRadius: 8 },
+  rarityLegendItem: { display: "flex", alignItems: "center", gap: 6, fontSize: 11.5 },
+  rarityDot: { width: 8, height: 8, borderRadius: "50%", display: "inline-block" },
+  lootRow: { display: "flex", gap: 12, background: "#161d3a", border: "1px solid", borderColor: "#232c52", borderRadius: 10, padding: "12px 14px", position: "relative", overflow: "hidden" },
+  lootRowRarityBar: { width: 3, borderRadius: 3, flexShrink: 0 },
+  lootRowTop: { display: "flex", alignItems: "baseline", gap: 8 },
+  lootRowName: { fontFamily: "'Fraunces', serif", fontSize: 15.5, color: "#eef0f5", fontStyle: "italic" },
+  lootRowCount: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#c9a24b" },
+  lootRowRarity: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: "0.1em", marginTop: 2 },
+  lootRowFlavor: { fontSize: 12.5, color: "#7b8bab", marginTop: 4, fontStyle: "italic" },
+  badgeGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 },
+  badge: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 3, background: "#161d3a", border: "1px solid #232c52", borderRadius: 8, padding: "10px 6px" },
+  badgeGlyph: { fontSize: 18 },
+  filterRow: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 },
+  filterChip: { fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, color: "#9aa7c7", background: "transparent", border: "1px solid #2a3358", borderRadius: 20, padding: "6px 12px", cursor: "pointer" },
+  filterChipActive: { color: "#10152a", background: "#c9a24b", borderColor: "#c9a24b", fontWeight: 500 },
+  newQuestBtn: { marginTop: 18, flex: 1, textAlign: "left", background: "#161d3a", border: "1px dashed #3a4576", borderRadius: 10, color: "#9aa7c7", padding: "14px 16px", fontSize: 14, fontFamily: "'IBM Plex Sans', sans-serif", cursor: "pointer" },
+  questBtnRow: { display: "flex", gap: 10 },
+  rollBtn: { marginTop: 18, flex: 1, textAlign: "center", background: "#1f2748", border: "1px solid #c9a24b", borderRadius: 10, color: "#c9a24b", padding: "14px 12px", fontSize: 13.5, fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 500, cursor: "pointer" },
+  form: { marginTop: 18, background: "#161d3a", border: "1px solid #2a3358", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 10 },
+  input: { background: "#0f1430", border: "1px solid #2a3358", borderRadius: 6, padding: "10px 12px", color: "#eef0f5", fontSize: 15, fontFamily: "'IBM Plex Sans', sans-serif", outline: "none" },
+  formRow: { display: "flex", gap: 10 },
+  select: { flex: 1, background: "#0f1430", border: "1px solid #2a3358", borderRadius: 6, padding: "9px 10px", color: "#eef0f5", fontSize: 13, fontFamily: "'IBM Plex Sans', sans-serif", outline: "none" },
+  primaryBtn: { flex: 1, background: "#c9a24b", border: "none", borderRadius: 6, padding: "10px 14px", color: "#10152a", fontWeight: 600, fontSize: 14, cursor: "pointer" },
+  ghostBtn: { background: "transparent", border: "1px solid #2a3358", borderRadius: 6, padding: "10px 14px", color: "#9aa7c7", fontSize: 14, cursor: "pointer" },
+  sectionLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.15em", color: "#5a6690", marginBottom: 10, textTransform: "uppercase" },
+  empty: { color: "#5a6690", fontSize: 14, fontStyle: "italic", padding: "10px 2px" },
+  list: { display: "flex", flexDirection: "column", gap: 8 },
+  card: { display: "flex", alignItems: "center", gap: 12, background: "#161d3a", border: "1px solid #232c52", borderRadius: 10, padding: "12px 12px" },
+  cardDone: { background: "#12172e", borderColor: "#1c2340" },
+  checkBtn: { flexShrink: 0, width: 26, height: 26, borderRadius: "50%", border: "1.5px solid #3a4576", background: "transparent", color: "#c9a24b", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  checkBtnDone: { background: "#4fb3a9", borderColor: "#4fb3a9", color: "#0b0e1e" },
+  cardTitle: { fontSize: 15, color: "#eef0f5" },
+  cardTitleDone: { color: "#5a6690", textDecoration: "line-through" },
+  cardMeta: { marginTop: 3, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#7b8bab" },
+  metaDot: { margin: "0 6px", color: "#3a4576" },
+  metaXp: { color: "#c9a24b" },
+  deleteBtn: { flexShrink: 0, background: "transparent", border: "none", color: "#3a4576", fontSize: 20, lineHeight: 1, cursor: "pointer", padding: 4 },
+
+  bottomNav: { position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", background: "rgba(16,21,42,0.96)", borderTop: "1px solid #262e52", backdropFilter: "blur(6px)", zIndex: 30, paddingBottom: "env(safe-area-inset-bottom, 0px)" },
+  navBtn: { flex: 1, background: "transparent", border: "none", color: "#5a6690", padding: "10px 4px 8px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer" },
+  navBtnActive: { color: "#c9a24b" },
+
+  confettiLayer: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 20, overflow: "hidden" },
+
+  revealOverlay: { position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", zIndex: 21, padding: 24 },
+  revealCard: { background: "rgba(16,21,42,0.95)", border: "2px solid", borderRadius: 14, padding: "22px 26px", textAlign: "center", minWidth: 240, boxShadow: "0 0 50px rgba(201,162,75,0.25)", animation: "seal-pop 2s ease forwards" },
+  critLabel: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.2em", color: "#c9a24b", marginBottom: 6 },
+  revealQuestTitle: { fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, color: "#7b8bab", marginBottom: 10 },
+  lootRarity: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: "0.15em", marginBottom: 4 },
+  lootName: { fontFamily: "'Fraunces', serif", fontStyle: "italic", fontSize: 20, color: "#eef0f5", marginBottom: 12 },
+  xpBreakdown: { display: "flex", flexDirection: "column", gap: 2, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5, color: "#9aa7c7", marginBottom: 10 },
+  totalXp: { fontFamily: "'Fraunces', serif", fontSize: 26, color: "#c9a24b", fontWeight: 600 },
+
+  levelUpOverlay: { position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(6,8,18,0.82)", zIndex: 22, padding: 24 },
+  levelUpCard: { background: "linear-gradient(180deg, #1c2447, #12172e)", border: "1px solid #3a4576", borderRadius: 16, padding: "34px 30px", textAlign: "center", maxWidth: 320, animation: "levelup-in 500ms ease forwards", boxShadow: "0 0 80px rgba(201,162,75,0.2)" },
+  levelUpEyebrow: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, letterSpacing: "0.3em", color: "#c9a24b", marginBottom: 8 },
+  levelUpNumber: { fontFamily: "'Fraunces', serif", fontSize: 64, color: "#eef0f5", lineHeight: 1, fontWeight: 700 },
+  levelUpTitle: { fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 15, color: "#9aa7c7", margin: "10px 0 22px" },
+
+  packToastWrap: { position: "fixed", left: 0, right: 0, top: 22, display: "flex", justifyContent: "center", zIndex: 24, pointerEvents: "none", padding: "0 18px" },
+  packToast: { fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: "#10152a", background: "#c9a24b", border: "1px solid #c9a24b", borderRadius: 20, padding: "9px 16px", boxShadow: "0 8px 24px rgba(0,0,0,0.35)", animation: "toast-in 300ms ease forwards" },
+  toastWrap: { position: "fixed", left: 0, right: 0, bottom: 70, display: "flex", justifyContent: "center", zIndex: 23, pointerEvents: "none", padding: "0 18px" },
+  toast: { display: "flex", alignItems: "center", gap: 12, background: "#161d3a", border: "1px solid #c9a24b", borderRadius: 12, padding: "12px 16px", maxWidth: 380, boxShadow: "0 8px 30px rgba(0,0,0,0.4)", animation: "toast-in 300ms ease forwards" },
+  toastGlyph: { fontSize: 22, color: "#c9a24b" },
+  toastLabel: { fontSize: 13.5, color: "#eef0f5", fontWeight: 500 },
+  toastDesc: { fontSize: 11.5, color: "#7b8bab", marginTop: 2 },
+};
+
+
+  const root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(<QuestLedger />);
+  window.__ledgerMounted = true;
+} catch (err) {
+  window.__ledgerErrors = window.__ledgerErrors || [];
+  window.__ledgerErrors.push("App error: " + err.message);
+}
+</script>
+</body>
+</html>
