@@ -55,9 +55,11 @@ window.storage = {
   }
 };
 
+// Service worker temporarily disabled while debugging, and unregistered if one
+// was already installed from an earlier attempt, so you always see the latest version.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((r) => r.unregister());
   });
 }
 
@@ -1076,3 +1078,4 @@ const styles = {
 </script>
 </body>
 </html>
+
