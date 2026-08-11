@@ -1,0 +1,15 @@
+{
+  "name": "The Ledger - Quest Tracker",
+  "short_name": "The Ledger",
+  "description": "Turn real-life tasks into RPG-style quests with XP, loot, and badges.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#10152a",
+  "theme_color": "#10152a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
