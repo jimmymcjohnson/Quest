@@ -1497,11 +1497,16 @@ function HistoryPage({
 function SkillsPage({
   notes,
   addNote,
-  deleteNote
+  deleteNote,
+  level
 }) {
   const [cat, setCat] = useState("body");
   const [draft, setDraft] = useState("");
   const tips = LIFE_SKILLS[cat];
+  const unlockedCount = Math.min(tips.length, level + 2);
+  function tipUnlockLevel(i) {
+    return Math.max(1, i - 1);
+  }
   function submitNote() {
     addNote(draft);
     setDraft("");
@@ -1530,17 +1535,35 @@ function SkillsPage({
       marginTop: 18
     }
   }, /*#__PURE__*/React.createElement("div", {
+    style: styles.rowBetween
+  }, /*#__PURE__*/React.createElement("div", {
     style: styles.sectionLabel
   }, catMap[cat].label, " Tips"), /*#__PURE__*/React.createElement("div", {
+    style: styles.compendiumTag
+  }, unlockedCount, "/", tips.length, " unlocked")), /*#__PURE__*/React.createElement("div", {
     style: styles.tipList
-  }, tips.map((tip, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: styles.tipRow
-  }, /*#__PURE__*/React.createElement("span", {
-    style: styles.tipNumber
-  }, String(i + 1).padStart(2, "0")), /*#__PURE__*/React.createElement("span", {
-    style: styles.tipText
-  }, tip))))), /*#__PURE__*/React.createElement("section", {
+  }, tips.map((tip, i) => {
+    const unlocked = i < unlockedCount;
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        ...styles.tipRow,
+        ...(unlocked ? {} : styles.tipRowLocked)
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...styles.tipNumber,
+        ...(unlocked ? {} : {
+          color: "#3a4576"
+        })
+      }
+    }, unlocked ? String(i + 1).padStart(2, "0") : "\u{1F512}"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        ...styles.tipText,
+        ...(unlocked ? {} : styles.tipTextLocked)
+      }
+    }, unlocked ? tip : `Unlocks at level ${tipUnlockLevel(i)}`));
+  }))), /*#__PURE__*/React.createElement("section", {
     style: {
       marginTop: 30
     }
@@ -2332,6 +2355,10 @@ const styles = {
     padding: "10px 12px",
     alignItems: "baseline"
   },
+  tipRowLocked: {
+    background: "#12172e",
+    borderColor: "#1c2340"
+  },
   tipNumber: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11,
@@ -2343,6 +2370,10 @@ const styles = {
     fontSize: 13.5,
     color: "#dbe0ee",
     lineHeight: 1.4
+  },
+  tipTextLocked: {
+    color: "#5a6690",
+    fontStyle: "italic"
   },
   noteForm: {
     display: "flex",
