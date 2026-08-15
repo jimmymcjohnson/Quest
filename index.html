@@ -348,7 +348,6 @@ window.storage = {
   }
 };
 
-// Unregister any leftover service worker from earlier attempts.
 try {
   if ("serviceWorker" in navigator && (location.protocol === "http:" || location.protocol === "https:")) {
     navigator.serviceWorker.getRegistrations().then((regs) => {
@@ -484,6 +483,14 @@ const LOOT_FLAVOR = {
   "The Last Ember": "Said to never fully go out."
 };
 const TOTAL_UNIQUE_LOOT = LOOT_TABLE.reduce((sum, r) => sum + r.names.length, 0);
+const LIFE_SKILLS = {
+  body: ["Start with 10 minutes of movement, not an hour — consistency beats intensity.", "Keep a water bottle within arm's reach all day.", "Stand up and stretch every hour you're seated.", "Prioritize sleep before adding more workouts.", "Warm up before intense exercise to prevent injury.", "Walking counts as real exercise — don't underrate it.", "Eat protein with every meal to stay fuller longer.", "Stretch before bed to improve next-day mobility.", "Track how you feel, not just numbers on a scale.", "Rest days are part of training, not a break from it.", "Do posture check-ins throughout the day.", "Take the stairs when you can — small choices add up.", "Meal-prep one day a week to remove daily decision fatigue.", "Get sunlight in the morning to help regulate your sleep cycle.", "Don't skip breakfast if it derails your energy later.", "Swap one sugary drink a day for water.", "Do a two-minute mobility routine before bed.", "Track sleep, not just workouts, in your notes.", "Vary your workouts to avoid plateaus and boredom.", "Listen to pain, not just fatigue — know the difference."],
+  mind: ["Read for 10 minutes before checking your phone in the morning.", "Write down three things on your mind before bed to clear your head.", "Try the Pomodoro technique — 25 minutes focused, 5 minutes off.", "Learn one new word or concept a day, not a whole subject.", "Journaling for five minutes can lower daily stress.", "Single-task instead of multitasking for deep work.", "Take a walk when you're stuck — movement helps thinking.", "Teach what you learn to someone else — it cements it.", "Limit news and social scrolling to set windows, not all day.", "Meditate for even 3 minutes; consistency matters more than duration.", "Ask \"why\" a few times to get to the root of a problem.", "Keep a running list of ideas so you don't lose them.", "Revisit old notes weekly to reinforce memory.", "Do your hardest thinking task earliest in the day.", "Say \"I don't know yet\" instead of guessing — it's more useful.", "Take breaks before you're exhausted, not after.", "Change your environment when your focus drops.", "Write questions down instead of just answers — it deepens learning.", "Set learning goals in weeks, not a vague \"someday.\"", "Reflect on what you learned each week, not just what you did."],
+  work: ["Plan tomorrow the night before, not the morning of.", "Do your most important task first, before checking email.", "Batch small tasks together instead of switching all day.", "Say no to new commitments before your plate is full, not after.", "Keep meetings to 25 or 50 minutes, not a full hour.", "Write down what \"done\" looks like before starting a task.", "Take a real lunch break away from your screen.", "Track where your time actually goes for one week.", "Automate or delete a repetitive task each month.", "Ask for feedback before you think you need it.", "Keep your workspace clear — clutter adds mental load.", "Set a hard stop time to protect your evenings.", "Break big projects into weekly, not just daily, chunks.", "Document decisions as you make them, not after.", "Underpromise and overdeliver on deadlines.", "Review your goals monthly, not just at year's end.", "Build relationships before you need favors.", "Celebrate finishing something, even a small task.", "Protect a couple hours a week for deep, uninterrupted work.", "Know the difference between urgent and important."],
+  kin: ["Reach out first instead of waiting to be contacted.", "Ask follow-up questions — it shows you're really listening.", "Put your phone away during conversations that matter.", "Remember small details people share and bring them up later.", "Say thank you specifically, not just generally.", "Show up for the small moments, not just the big ones.", "Apologize without adding \"but\" afterward.", "Make time for people before your schedule is full.", "Ask \"how are you, really?\" and wait for the real answer.", "Give compliments in the moment, not after the fact.", "Plan low-effort hangouts — not everything needs to be an event.", "Check in on people during hard times, not just happy ones.", "Listen to understand, not just to reply.", "Celebrate other people's wins loudly.", "Be the one who initiates plans sometimes.", "Write a note instead of just texting occasionally — it stands out.", "Give people the benefit of the doubt before assuming the worst.", "Share what's really going on, not just the highlight reel.", "Make space for silence in conversations — you don't need to fill it.", "Tell people you appreciate them before you assume they know."],
+  keep: ["Make your bed — it sets the tone for the rest of the day.", "Do a nightly 5-minute reset instead of a big weekend clean.", "A place for everything means less time searching for things.", "Wipe down surfaces right after you use them.", "Do one load of laundry a day instead of one big day.", "Declutter one drawer or shelf at a time, not the whole house.", "Keep a small trash bag in every room to reduce buildup.", "Open windows regularly for fresh air and lower moisture.", "Handle mail the day it arrives — sort, don't stack.", "Keep cleaning supplies where you'll actually use them.", "Set a timer for quick clean sprints instead of marathon sessions.", "Donate one item a week you haven't used in months.", "Clean as you cook to avoid a pile of dishes after.", "Change sheets weekly for better sleep and hygiene.", "Keep entryways clear — first impressions matter, including your own.", "Label storage bins so things go back where they belong.", "Do a seasonal deep clean instead of trying to do it all at once.", "Fix small things (a loose handle, a squeaky hinge) before they grow.", "Keep a \"donate\" box going year-round.", "Water your plants on a set day so it's a habit, not an afterthought."],
+  other: ["Try one new thing a month, even something small.", "Say yes to something slightly outside your comfort zone.", "Keep a \"someday\" list of things you want to try.", "Give yourself permission to be bad at something new at first.", "Schedule fun the same way you schedule work.", "Unplug completely for at least one hour a week.", "Revisit an old hobby you dropped — see if it still fits.", "Spend time outside, even just ten minutes a day.", "Do something purely for enjoyment, with no goal attached.", "Notice what makes you lose track of time — that's a clue.", "Let boredom happen sometimes instead of filling every gap.", "Ask people about their hobbies — you might find a new one.", "Keep a list of books, shows, or ideas you're curious about.", "Take a different route somewhere just to see something new.", "Make space for spontaneity, not just planned activities.", "Celebrate small personal wins, not just big milestones.", "Try a hobby that uses your hands, not just your screen.", "Give yourself a \"no-decision\" day sometimes.", "Revisit your goals — some might need to change, and that's okay.", "Do something creative even if no one will see it."]
+};
 const TITLES = [{
   min: 1,
   title: "Greenhorn"
@@ -744,6 +751,10 @@ const TABS = [{
   label: "History",
   glyph: "\u29D6"
 }, {
+  id: "skills",
+  label: "Skills",
+  glyph: "\u2732"
+}, {
   id: "you",
   label: "You",
   glyph: "\u2605"
@@ -843,6 +854,7 @@ function QuestLedger() {
   const [inventory, setInventory] = useState([]);
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
   const [discoveredNames, setDiscoveredNames] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("all");
@@ -871,6 +883,7 @@ function QuestLedger() {
         setInventory(s.inventory || []);
         setUnlockedAchievements(s.unlockedAchievements || []);
         setDiscoveredNames(s.discoveredNames || []);
+        setNotes(s.notes || []);
       }
       setLoaded(true);
     })();
@@ -884,9 +897,10 @@ function QuestLedger() {
       completedDays,
       inventory,
       unlockedAchievements,
-      discoveredNames
+      discoveredNames,
+      notes
     });
-  }, [quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames, loaded, persist]);
+  }, [quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames, notes, loaded, persist]);
   useEffect(() => {
     if (toastQueue.length === 0) return;
     if (toastTimer.current) return;
@@ -957,6 +971,17 @@ function QuestLedger() {
     setPackMessage(`+${newQuests.length} quests added to your board`);
     if (packTimer.current) clearTimeout(packTimer.current);
     packTimer.current = setTimeout(() => setPackMessage(null), 2400);
+  }
+  function addNote(text) {
+    if (!text.trim()) return;
+    setNotes(prev => [{
+      id: uid(),
+      text: text.trim(),
+      createdAt: Date.now()
+    }, ...prev]);
+  }
+  function deleteNote(id) {
+    setNotes(prev => prev.filter(n => n.id !== id));
   }
   function computeStreak(days) {
     if (days.length === 0) return 0;
@@ -1087,7 +1112,10 @@ function QuestLedger() {
     reopenQuest,
     deleteQuest,
     setPage,
-    rollQuestPack
+    rollQuestPack,
+    notes,
+    addNote,
+    deleteNote
   };
   if (!loaded) {
     return /*#__PURE__*/React.createElement("div", {
@@ -1116,7 +1144,7 @@ function QuestLedger() {
     style: styles.critFlash
   }), /*#__PURE__*/React.createElement("div", {
     style: styles.body
-  }, page === "home" && /*#__PURE__*/React.createElement(HomePage, shared), page === "daily" && /*#__PURE__*/React.createElement(DailyPage, shared), page === "history" && /*#__PURE__*/React.createElement(HistoryPage, shared), page === "you" && /*#__PURE__*/React.createElement(YouPage, shared)), /*#__PURE__*/React.createElement("nav", {
+  }, page === "home" && /*#__PURE__*/React.createElement(HomePage, shared), page === "daily" && /*#__PURE__*/React.createElement(DailyPage, shared), page === "history" && /*#__PURE__*/React.createElement(HistoryPage, shared), page === "skills" && /*#__PURE__*/React.createElement(SkillsPage, shared), page === "you" && /*#__PURE__*/React.createElement(YouPage, shared)), /*#__PURE__*/React.createElement("nav", {
     style: styles.bottomNav
   }, TABS.map(t => /*#__PURE__*/React.createElement("button", {
     key: t.id,
@@ -1465,6 +1493,98 @@ function HistoryPage({
     onReopen: () => reopenQuest(q.id),
     onDelete: () => deleteQuest(q.id)
   }))))));
+}
+function SkillsPage({
+  notes,
+  addNote,
+  deleteNote
+}) {
+  const [cat, setCat] = useState("body");
+  const [draft, setDraft] = useState("");
+  const tips = LIFE_SKILLS[cat];
+  function submitNote() {
+    addNote(draft);
+    setDraft("");
+  }
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("header", {
+    style: styles.pageHeader
+  }, /*#__PURE__*/React.createElement("div", {
+    style: styles.eyebrow
+  }, "LIFE SKILLS"), /*#__PURE__*/React.createElement("h1", {
+    style: styles.h1
+  }, "Field Notes")), /*#__PURE__*/React.createElement("div", {
+    style: styles.filterRow
+  }, CATEGORIES.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c.id,
+    onClick: () => setCat(c.id),
+    style: {
+      ...styles.filterChip,
+      ...(cat === c.id ? styles.filterChipActive : {})
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginRight: 5
+    }
+  }, c.glyph), c.label))), /*#__PURE__*/React.createElement("section", {
+    style: {
+      marginTop: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: styles.sectionLabel
+  }, catMap[cat].label, " Tips"), /*#__PURE__*/React.createElement("div", {
+    style: styles.tipList
+  }, tips.map((tip, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: styles.tipRow
+  }, /*#__PURE__*/React.createElement("span", {
+    style: styles.tipNumber
+  }, String(i + 1).padStart(2, "0")), /*#__PURE__*/React.createElement("span", {
+    style: styles.tipText
+  }, tip))))), /*#__PURE__*/React.createElement("section", {
+    style: {
+      marginTop: 30
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: styles.sectionLabel
+  }, "Notes & Plans"), /*#__PURE__*/React.createElement("div", {
+    style: styles.noteForm
+  }, /*#__PURE__*/React.createElement("textarea", {
+    placeholder: "e.g. Plan 3 things for tomorrow",
+    value: draft,
+    onChange: e => setDraft(e.target.value),
+    style: styles.textarea,
+    rows: 3
+  }), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    style: styles.primaryBtn,
+    onClick: submitNote
+  }, "Save Note")), notes.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...styles.empty,
+      marginTop: 14
+    }
+  }, "No notes yet — jot down a plan above.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...styles.list,
+      marginTop: 14
+    }
+  }, notes.map(n => /*#__PURE__*/React.createElement("div", {
+    key: n.id,
+    style: styles.noteCard
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: styles.noteText
+  }, n.text), /*#__PURE__*/React.createElement("div", {
+    style: styles.noteDate
+  }, friendlyDate(n.createdAt))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => deleteNote(n.id),
+    title: "Remove",
+    style: styles.deleteBtn
+  }, "×"))))));
 }
 function YouPage({
   level,
@@ -2085,6 +2205,17 @@ const styles = {
     fontFamily: "'IBM Plex Sans', sans-serif",
     outline: "none"
   },
+  textarea: {
+    background: "#0f1430",
+    border: "1px solid #2a3358",
+    borderRadius: 6,
+    padding: "10px 12px",
+    color: "#eef0f5",
+    fontSize: 14.5,
+    fontFamily: "'IBM Plex Sans', sans-serif",
+    outline: "none",
+    resize: "vertical"
+  },
   primaryBtn: {
     flex: 1,
     background: "#c9a24b",
@@ -2186,6 +2317,65 @@ const styles = {
     lineHeight: 1,
     cursor: "pointer",
     padding: 4
+  },
+  tipList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6
+  },
+  tipRow: {
+    display: "flex",
+    gap: 12,
+    background: "#161d3a",
+    border: "1px solid #232c52",
+    borderRadius: 8,
+    padding: "10px 12px",
+    alignItems: "baseline"
+  },
+  tipNumber: {
+    fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: 11,
+    color: "#c9a24b",
+    flexShrink: 0,
+    width: 20
+  },
+  tipText: {
+    fontSize: 13.5,
+    color: "#dbe0ee",
+    lineHeight: 1.4
+  },
+  noteForm: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    background: "#161d3a",
+    border: "1px solid #2a3358",
+    borderRadius: 10,
+    padding: 14
+  },
+  noteCard: {
+    display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+    background: "#161d3a",
+    border: "1px solid #232c52",
+    borderRadius: 10,
+    padding: "12px 14px"
+  },
+  noteText: {
+    fontFamily: "'Fraunces', serif",
+    fontStyle: "italic",
+    fontSize: 15,
+    color: "#eef0f5",
+    lineHeight: 1.4
+  },
+  noteDate: {
+    fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: 10.5,
+    color: "#7b8bab",
+    marginTop: 5,
+    letterSpacing: "0.05em",
+    textTransform: "uppercase"
   },
   bottomNav: {
     position: "fixed",
