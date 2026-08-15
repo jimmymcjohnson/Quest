@@ -2,14 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
 <meta name="theme-color" content="#10152a" />
 <title>The Ledger</title>
 <link rel="manifest" href="manifest.json" />
+
+<!-- iOS: makes "Add to Home Screen" behave like a real installed app -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="The Ledger" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png" />
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png" />
 <link rel="icon" href="icons/icon-192.png" />
-<link rel="apple-touch-icon" href="icons/icon-192.png" />
+
 <style>
-  html, body { margin: 0; padding: 0; background: #10152a; }
+  html, body { margin: 0; padding: 0; background: #10152a; overscroll-behavior: none; }
   #root { min-height: 100vh; }
   #fallback { min-height:100vh; display:flex; align-items:center; justify-content:center;
     flex-direction:column; gap:10px; color:#7b8bab; font-family:monospace; font-size:13px;
@@ -394,27 +403,33 @@ const DIFFICULTY = {
 const CATEGORIES = [{
   id: "body",
   label: "Body",
-  glyph: "\u2694"
+  glyph: "\u2694",
+  color: "#d97b6c"
 }, {
   id: "mind",
   label: "Mind",
-  glyph: "\u2727"
+  glyph: "\u2727",
+  color: "#6fb8b3"
 }, {
   id: "work",
   label: "Work",
-  glyph: "\u2692"
+  glyph: "\u2692",
+  color: "#d4b15a"
 }, {
   id: "kin",
   label: "Kin",
-  glyph: "\u2665"
+  glyph: "\u2665",
+  color: "#c17bb0"
 }, {
   id: "keep",
   label: "Keep",
-  glyph: "\u2302"
+  glyph: "\u2302",
+  color: "#7ea1d9"
 }, {
   id: "other",
   label: "Other",
-  glyph: "\u2731"
+  glyph: "\u2731",
+  color: "#9a8fd9"
 }];
 const catMap = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
 const LOOT_TABLE = [{
@@ -1055,6 +1070,11 @@ function QuestLedger() {
       loot
     });
     burstConfetti();
+    if (navigator.vibrate) {
+      try {
+        navigator.vibrate(isCrit ? [15, 40, 25] : 15);
+      } catch (e) {}
+    }
     if (isCrit) {
       setFlash(true);
       setTimeout(() => setFlash(false), 380);
@@ -1140,14 +1160,20 @@ function QuestLedger() {
     style: styles.page
   }, /*#__PURE__*/React.createElement("style", null, fontImports), /*#__PURE__*/React.createElement("div", {
     style: styles.vignette
+  }), /*#__PURE__*/React.createElement("div", {
+    style: styles.starfield
   }), flash && /*#__PURE__*/React.createElement("div", {
     style: styles.critFlash
   }), /*#__PURE__*/React.createElement("div", {
     style: styles.body
-  }, page === "home" && /*#__PURE__*/React.createElement(HomePage, shared), page === "daily" && /*#__PURE__*/React.createElement(DailyPage, shared), page === "history" && /*#__PURE__*/React.createElement(HistoryPage, shared), page === "skills" && /*#__PURE__*/React.createElement(SkillsPage, shared), page === "you" && /*#__PURE__*/React.createElement(YouPage, shared)), /*#__PURE__*/React.createElement("nav", {
+  }, /*#__PURE__*/React.createElement("div", {
+    key: page,
+    className: "page-fade"
+  }, page === "home" && /*#__PURE__*/React.createElement(HomePage, shared), page === "daily" && /*#__PURE__*/React.createElement(DailyPage, shared), page === "history" && /*#__PURE__*/React.createElement(HistoryPage, shared), page === "skills" && /*#__PURE__*/React.createElement(SkillsPage, shared), page === "you" && /*#__PURE__*/React.createElement(YouPage, shared))), /*#__PURE__*/React.createElement("nav", {
     style: styles.bottomNav
   }, TABS.map(t => /*#__PURE__*/React.createElement("button", {
     key: t.id,
+    className: "btn-press",
     onClick: () => setPage(t.id),
     style: {
       ...styles.navBtn,
@@ -1155,7 +1181,9 @@ function QuestLedger() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 17
+      fontSize: 17,
+      transform: page === t.id ? "scale(1.12)" : "scale(1)",
+      transition: "transform 200ms ease"
     }
   }, t.glyph), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1163,7 +1191,12 @@ function QuestLedger() {
       fontFamily: "'IBM Plex Mono', monospace",
       letterSpacing: "0.05em"
     }
-  }, t.label)))), confetti.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, t.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...styles.navDot,
+      opacity: page === t.id ? 1 : 0
+    }
+  })))), confetti.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: styles.confettiLayer
   }, confetti.map(p => /*#__PURE__*/React.createElement("div", {
     key: p.id,
@@ -1219,6 +1252,7 @@ function QuestLedger() {
   }, levelUp.level), /*#__PURE__*/React.createElement("div", {
     style: styles.levelUpTitle
   }, "You are now a ", levelUp.title), /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     style: styles.primaryBtn,
     onClick: () => setLevelUp(null)
   }, "Continue"))), packMessage && /*#__PURE__*/React.createElement("div", {
@@ -1281,6 +1315,7 @@ function HomePage({
   }, /*#__PURE__*/React.createElement("div", {
     style: styles.sectionLabel
   }, "Today's Quests"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     style: styles.linkBtn,
     onClick: () => setPage("daily")
   }, "View all →")), todaysActive.length === 0 ? /*#__PURE__*/React.createElement("div", {
@@ -1300,6 +1335,7 @@ function HomePage({
   }, /*#__PURE__*/React.createElement("div", {
     style: styles.sectionLabel
   }, "Recent History"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     style: styles.linkBtn,
     onClick: () => setPage("history")
   }, "View all →")), recentCompleted.length === 0 ? /*#__PURE__*/React.createElement("div", {
@@ -1335,12 +1371,14 @@ function DailyPage({
   }, "The Board")), /*#__PURE__*/React.createElement("div", {
     style: styles.filterRow
   }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     onClick: () => setFilter("all"),
     style: {
       ...styles.filterChip,
       ...(filter === "all" ? styles.filterChipActive : {})
     }
   }, "All"), CATEGORIES.map(c => /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     key: c.id,
     onClick: () => setFilter(c.id),
     style: {
@@ -1354,9 +1392,11 @@ function DailyPage({
   }, c.glyph), c.label))), !showForm ? /*#__PURE__*/React.createElement("div", {
     style: styles.questBtnRow
   }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     style: styles.newQuestBtn,
     onClick: () => setShowForm(true)
   }, "+ Log a new quest"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     style: styles.rollBtn,
     onClick: rollQuestPack,
     title: "Draw 3 random quests"
@@ -1399,10 +1439,12 @@ function DailyPage({
   }, v.glyph, " ", v.label, " · ", v.xp, "xp")))), /*#__PURE__*/React.createElement("div", {
     style: styles.formRow
   }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     type: "button",
     style: styles.primaryBtn,
     onClick: addQuest
   }, "Accept Quest"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     type: "button",
     style: styles.ghostBtn,
     onClick: () => setShowForm(false)
@@ -1456,12 +1498,14 @@ function HistoryPage({
   }, completed.length, " quests completed · ", totalXp, " xp earned lifetime")), /*#__PURE__*/React.createElement("div", {
     style: styles.filterRow
   }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     onClick: () => setFilter("all"),
     style: {
       ...styles.filterChip,
       ...(filter === "all" ? styles.filterChipActive : {})
     }
   }, "All"), CATEGORIES.map(c => /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     key: c.id,
     onClick: () => setFilter(c.id),
     style: {
@@ -1520,6 +1564,7 @@ function SkillsPage({
   }, "Field Notes")), /*#__PURE__*/React.createElement("div", {
     style: styles.filterRow
   }, CATEGORIES.map(c => /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     key: c.id,
     onClick: () => setCat(c.id),
     style: {
@@ -1578,6 +1623,7 @@ function SkillsPage({
     style: styles.textarea,
     rows: 3
   }), /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     type: "button",
     style: styles.primaryBtn,
     onClick: submitNote
@@ -1604,6 +1650,7 @@ function SkillsPage({
   }, n.text), /*#__PURE__*/React.createElement("div", {
     style: styles.noteDate
   }, friendlyDate(n.createdAt))), /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     onClick: () => deleteNote(n.id),
     title: "Remove",
     style: styles.deleteBtn
@@ -1849,6 +1896,7 @@ function QuestRow({
       ...(done ? styles.cardDone : {})
     }
   }, (onComplete || onReopen) && /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     onClick: done ? onReopen : onComplete,
     title: done ? "Reopen" : "Mark complete",
     style: {
@@ -1872,13 +1920,20 @@ function QuestRow({
     }
   }, q.title), /*#__PURE__*/React.createElement("div", {
     style: styles.cardMeta
-  }, /*#__PURE__*/React.createElement("span", null, cat.glyph, " ", cat.label), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      ...styles.catDot,
+      background: cat.color,
+      opacity: done ? 0.4 : 1
+    }
+  }), /*#__PURE__*/React.createElement("span", null, cat.glyph, " ", cat.label), /*#__PURE__*/React.createElement("span", {
     style: styles.metaDot
   }, "·"), /*#__PURE__*/React.createElement("span", null, diff.glyph, " ", diff.label), /*#__PURE__*/React.createElement("span", {
     style: styles.metaDot
   }, "·"), /*#__PURE__*/React.createElement("span", {
     style: styles.metaXp
   }, diff.xp, " xp"))), onDelete && /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
     onClick: onDelete,
     title: "Remove",
     style: styles.deleteBtn
@@ -1889,8 +1944,16 @@ function QuestRow({
 
 const fontImports = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-input::placeholder { color: #5a6690; }
+input::placeholder, textarea::placeholder { color: #5a6690; }
 select { -webkit-appearance: none; appearance: none; }
+button { -webkit-tap-highlight-color: transparent; user-select: none; }
+.btn-press { transition: transform 130ms ease, opacity 130ms ease; }
+.btn-press:active { transform: scale(0.95); opacity: 0.85; }
+.page-fade { animation: page-fade-in 320ms ease; }
+@keyframes page-fade-in {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 @keyframes seal-pop {
   0% { opacity: 0; transform: scale(0.85) translateY(8px); }
   15% { opacity: 1; transform: scale(1.03) translateY(0); }
@@ -1914,6 +1977,10 @@ select { -webkit-appearance: none; appearance: none; }
   0% { opacity: 0.55; }
   100% { opacity: 0; }
 }
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
 `;
 const styles = {
   page: {
@@ -1928,6 +1995,15 @@ const styles = {
     inset: 0,
     pointerEvents: "none",
     boxShadow: "inset 0 0 160px rgba(0,0,0,0.55)"
+  },
+  starfield: {
+    position: "fixed",
+    inset: 0,
+    pointerEvents: "none",
+    zIndex: 0,
+    backgroundImage: "radial-gradient(1.5px 1.5px at 12% 18%, rgba(238,240,245,0.7), transparent), " + "radial-gradient(1px 1px at 28% 8%, rgba(238,240,245,0.5), transparent), " + "radial-gradient(1.5px 1.5px at 46% 24%, rgba(201,162,75,0.6), transparent), " + "radial-gradient(1px 1px at 63% 6%, rgba(238,240,245,0.45), transparent), " + "radial-gradient(1.5px 1.5px at 78% 15%, rgba(238,240,245,0.65), transparent), " + "radial-gradient(1px 1px at 91% 28%, rgba(201,162,75,0.5), transparent), " + "radial-gradient(1.5px 1.5px at 8% 42%, rgba(238,240,245,0.4), transparent), " + "radial-gradient(1px 1px at 35% 55%, rgba(238,240,245,0.55), transparent), " + "radial-gradient(1.5px 1.5px at 70% 48%, rgba(238,240,245,0.4), transparent), " + "radial-gradient(1px 1px at 85% 60%, rgba(201,162,75,0.45), transparent)",
+    backgroundRepeat: "no-repeat",
+    animation: "twinkle 5s ease-in-out infinite"
   },
   critFlash: {
     position: "fixed",
@@ -2322,7 +2398,17 @@ const styles = {
     marginTop: 3,
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11,
-    color: "#7b8bab"
+    color: "#7b8bab",
+    display: "flex",
+    alignItems: "center"
+  },
+  catDot: {
+    display: "inline-block",
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    marginRight: 6,
+    flexShrink: 0
   },
   metaDot: {
     margin: "0 6px",
@@ -2430,10 +2516,20 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     gap: 3,
-    cursor: "pointer"
+    cursor: "pointer",
+    position: "relative"
   },
   navBtnActive: {
     color: "#c9a24b"
+  },
+  navDot: {
+    position: "absolute",
+    bottom: 2,
+    width: 4,
+    height: 4,
+    borderRadius: "50%",
+    background: "#c9a24b",
+    transition: "opacity 200ms ease"
   },
   confettiLayer: {
     position: "fixed",
@@ -2510,6 +2606,8 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     background: "rgba(6,8,18,0.82)",
+    backdropFilter: "blur(4px)",
+    WebkitBackdropFilter: "blur(4px)",
     zIndex: 22,
     padding: 24
   },
