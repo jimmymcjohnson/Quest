@@ -4,13 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
 <meta name="theme-color" content="#10152a" />
-<title>SideQuest1.2</title>
+<title>The Ledger</title>
 <link rel="manifest" href="manifest.json" />
 
-<!-- iOS: makes "Add to Home Screen" behave like a real installed app -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="SideQuest1.2" />
+<meta name="apple-mobile-web-app-title" content="The Ledger" />
 <link rel="apple-touch-icon" href="icons/icon-180.png" />
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png" />
 <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png" />
@@ -498,6 +497,69 @@ const LOOT_FLAVOR = {
   "The Last Ember": "Said to never fully go out."
 };
 const TOTAL_UNIQUE_LOOT = LOOT_TABLE.reduce((sum, r) => sum + r.names.length, 0);
+const THEMES = {
+  dark: {
+    "--bg-a": "#1a2140",
+    "--bg-b": "#10152a",
+    "--bg-c": "#0b0e1e",
+    "--divider": "#262e52",
+    "--gold-text": "#c9a24b",
+    "--on-gold": "#1a1206",
+    "--success": "#4fb3a9",
+    "--on-success": "#0b1a17",
+    "--text-1": "#eef0f5",
+    "--text-2": "#9aa7c7",
+    "--text-3": "#7b8bab",
+    "--text-4": "#5a6690",
+    "--surface": "#161d3a",
+    "--surface-2": "#12172e",
+    "--surface-3": "#0f1430",
+    "--surface-4": "#1f2748",
+    "--surface-5": "#1c2447",
+    "--border": "#232c52",
+    "--border-2": "#2a3358",
+    "--border-3": "#3a4576",
+    "--border-4": "#1c2340",
+    "--nav-rgb": "16,21,42",
+    "--vignette": "inset 0 0 160px rgba(0,0,0,0.55)",
+    "--decor": "radial-gradient(1.5px 1.5px at 12% 18%, rgba(238,240,245,0.7), transparent), " + "radial-gradient(1px 1px at 28% 8%, rgba(238,240,245,0.5), transparent), " + "radial-gradient(1.5px 1.5px at 46% 24%, rgba(201,162,75,0.6), transparent), " + "radial-gradient(1px 1px at 63% 6%, rgba(238,240,245,0.45), transparent), " + "radial-gradient(1.5px 1.5px at 78% 15%, rgba(238,240,245,0.65), transparent), " + "radial-gradient(1px 1px at 91% 28%, rgba(201,162,75,0.5), transparent), " + "radial-gradient(1.5px 1.5px at 8% 42%, rgba(238,240,245,0.4), transparent), " + "radial-gradient(1px 1px at 35% 55%, rgba(238,240,245,0.55), transparent), " + "radial-gradient(1.5px 1.5px at 70% 48%, rgba(238,240,245,0.4), transparent), " + "radial-gradient(1px 1px at 85% 60%, rgba(201,162,75,0.45), transparent)",
+    "--watermark-opacity": "0.05"
+  },
+  light: {
+    "--bg-a": "#f6ecd3",
+    "--bg-b": "#eee0bd",
+    "--bg-c": "#e4d3a0",
+    "--divider": "#d9c79c",
+    "--gold-text": "#8a5a1f",
+    "--on-gold": "#fdf6e6",
+    "--success": "#2f7d63",
+    "--on-success": "#f8f4e6",
+    "--text-1": "#3a2c1a",
+    "--text-2": "#6b5738",
+    "--text-3": "#83704c",
+    "--text-4": "#a3906a",
+    "--surface": "#fbf3e0",
+    "--surface-2": "#f3e6c6",
+    "--surface-3": "#f7ecd6",
+    "--surface-4": "#efe0b8",
+    "--surface-5": "#f6ead0",
+    "--border": "#ddc99a",
+    "--border-2": "#d1bb87",
+    "--border-3": "#b89f6c",
+    "--border-4": "#e3d2a4",
+    "--nav-rgb": "251,243,224",
+    "--vignette": "inset 0 0 160px rgba(120,90,40,0.18)",
+    "--decor": "radial-gradient(60px 40px at 15% 20%, rgba(138,90,31,0.08), transparent), " + "radial-gradient(90px 50px at 80% 12%, rgba(138,90,31,0.06), transparent), " + "radial-gradient(70px 45px at 60% 45%, rgba(138,90,31,0.07), transparent), " + "radial-gradient(50px 60px at 25% 65%, rgba(138,90,31,0.06), transparent), " + "radial-gradient(80px 40px at 90% 70%, rgba(138,90,31,0.07), transparent)",
+    "--watermark-opacity": "0.07"
+  }
+};
+function getGreeting(d = new Date()) {
+  const h = d.getHours();
+  if (h >= 5 && h < 11) return "The morning mist is clearing.";
+  if (h >= 11 && h < 17) return "The sun sits high over the road.";
+  if (h >= 17 && h < 21) return "Dusk settles over camp.";
+  return "The stars are out — quiet work suits the night.";
+}
 const LIFE_SKILLS = {
   body: ["Start with 10 minutes of movement, not an hour — consistency beats intensity.", "Keep a water bottle within arm's reach all day.", "Stand up and stretch every hour you're seated.", "Prioritize sleep before adding more workouts.", "Warm up before intense exercise to prevent injury.", "Walking counts as real exercise — don't underrate it.", "Eat protein with every meal to stay fuller longer.", "Stretch before bed to improve next-day mobility.", "Track how you feel, not just numbers on a scale.", "Rest days are part of training, not a break from it.", "Do posture check-ins throughout the day.", "Take the stairs when you can — small choices add up.", "Meal-prep one day a week to remove daily decision fatigue.", "Get sunlight in the morning to help regulate your sleep cycle.", "Don't skip breakfast if it derails your energy later.", "Swap one sugary drink a day for water.", "Do a two-minute mobility routine before bed.", "Track sleep, not just workouts, in your notes.", "Vary your workouts to avoid plateaus and boredom.", "Listen to pain, not just fatigue — know the difference."],
   mind: ["Read for 10 minutes before checking your phone in the morning.", "Write down three things on your mind before bed to clear your head.", "Try the Pomodoro technique — 25 minutes focused, 5 minutes off.", "Learn one new word or concept a day, not a whole subject.", "Journaling for five minutes can lower daily stress.", "Single-task instead of multitasking for deep work.", "Take a walk when you're stuck — movement helps thinking.", "Teach what you learn to someone else — it cements it.", "Limit news and social scrolling to set windows, not all day.", "Meditate for even 3 minutes; consistency matters more than duration.", "Ask \"why\" a few times to get to the root of a problem.", "Keep a running list of ideas so you don't lose them.", "Revisit old notes weekly to reinforce memory.", "Do your hardest thinking task earliest in the day.", "Say \"I don't know yet\" instead of guessing — it's more useful.", "Take breaks before you're exhausted, not after.", "Change your environment when your focus drops.", "Write questions down instead of just answers — it deepens learning.", "Set learning goals in weeks, not a vague \"someday.\"", "Reflect on what you learned each week, not just what you did."],
@@ -870,6 +932,7 @@ function QuestLedger() {
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
   const [discoveredNames, setDiscoveredNames] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [theme, setTheme] = useState("dark");
   const [loaded, setLoaded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("all");
@@ -899,6 +962,7 @@ function QuestLedger() {
         setUnlockedAchievements(s.unlockedAchievements || []);
         setDiscoveredNames(s.discoveredNames || []);
         setNotes(s.notes || []);
+        setTheme(s.theme === "light" ? "light" : "dark");
       }
       setLoaded(true);
     })();
@@ -913,9 +977,10 @@ function QuestLedger() {
       inventory,
       unlockedAchievements,
       discoveredNames,
-      notes
+      notes,
+      theme
     });
-  }, [quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames, notes, loaded, persist]);
+  }, [quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames, notes, theme, loaded, persist]);
   useEffect(() => {
     if (toastQueue.length === 0) return;
     if (toastTimer.current) return;
@@ -1135,11 +1200,16 @@ function QuestLedger() {
     rollQuestPack,
     notes,
     addNote,
-    deleteNote
+    deleteNote,
+    theme,
+    setTheme
   };
   if (!loaded) {
     return /*#__PURE__*/React.createElement("div", {
-      style: styles.page
+      style: {
+        ...styles.page,
+        ...THEMES[theme]
+      }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         ...styles.body,
@@ -1149,7 +1219,7 @@ function QuestLedger() {
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        color: "#7b8bab",
+        color: "var(--text-3)",
         fontFamily: "'IBM Plex Mono', monospace",
         fontSize: 13,
         letterSpacing: "0.08em"
@@ -1157,12 +1227,15 @@ function QuestLedger() {
     }, "unrolling the ledger…")));
   }
   return /*#__PURE__*/React.createElement("div", {
-    style: styles.page
+    style: {
+      ...styles.page,
+      ...THEMES[theme]
+    }
   }, /*#__PURE__*/React.createElement("style", null, fontImports), /*#__PURE__*/React.createElement("div", {
     style: styles.vignette
   }), /*#__PURE__*/React.createElement("div", {
     style: styles.starfield
-  }), flash && /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement(CompassWatermark, null), flash && /*#__PURE__*/React.createElement("div", {
     style: styles.critFlash
   }), /*#__PURE__*/React.createElement("div", {
     style: styles.body
@@ -1233,11 +1306,11 @@ function QuestLedger() {
     style: styles.xpBreakdown
   }, /*#__PURE__*/React.createElement("span", null, "base +", reveal.baseXp, "xp"), reveal.isCrit && /*#__PURE__*/React.createElement("span", {
     style: {
-      color: "#c9a24b"
+      color: "var(--gold-text)"
     }
   }, "crit +", reveal.baseXp, "xp"), reveal.comboBonus > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
-      color: "#4fb3a9"
+      color: "var(--success)"
     }
   }, "combo x", reveal.comboCount, " +", reveal.comboBonus, "xp")), /*#__PURE__*/React.createElement("div", {
     style: styles.totalXp
@@ -1296,14 +1369,16 @@ function HomePage({
     style: styles.h1
   }, "Welcome back"), /*#__PURE__*/React.createElement("div", {
     style: styles.titleLine
-  }, title, " · Level ", level)), /*#__PURE__*/React.createElement(LevelRing, {
+  }, title, " · Level ", level), /*#__PURE__*/React.createElement("div", {
+    style: styles.greeting
+  }, getGreeting())), /*#__PURE__*/React.createElement(LevelRing, {
     pct: pct,
     level: level
   })), /*#__PURE__*/React.createElement("div", {
     style: styles.xpLine
   }, into, " / ", need, " xp to next level", /*#__PURE__*/React.createElement("div", {
     style: {
-      color: streak > 0 ? "#c9a24b" : "#5a6690",
+      color: streak > 0 ? "var(--gold-text)" : "var(--text-4)",
       marginTop: 2
     }
   }, streak > 0 ? `\uD83D\uDD25 ${streak} day streak` : "no streak yet — complete a quest today")), /*#__PURE__*/React.createElement("section", {
@@ -1599,7 +1674,7 @@ function SkillsPage({
       style: {
         ...styles.tipNumber,
         ...(unlocked ? {} : {
-          color: "#3a4576"
+          color: "var(--border-3)"
         })
       }
     }, unlocked ? String(i + 1).padStart(2, "0") : "\u{1F512}"), /*#__PURE__*/React.createElement("span", {
@@ -1667,7 +1742,9 @@ function YouPage({
   completed,
   inventory,
   unlockedAchievements,
-  discoveredNames
+  discoveredNames,
+  theme,
+  setTheme
 }) {
   const totalCompleted = completed.length;
   const grouped = groupInventory(inventory);
@@ -1692,10 +1769,32 @@ function YouPage({
     style: {
       fontFamily: "'IBM Plex Mono', monospace",
       fontSize: 12,
-      color: "#7b8bab",
+      color: "var(--text-3)",
       marginTop: 8
     }
-  }, into, " / ", need, " xp to level ", level + 1)), /*#__PURE__*/React.createElement("div", {
+  }, into, " / ", need, " xp to level ", level + 1)), /*#__PURE__*/React.createElement("section", {
+    style: {
+      marginTop: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: styles.sectionLabel
+  }, "Appearance"), /*#__PURE__*/React.createElement("div", {
+    style: styles.themeToggle
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
+    onClick: () => setTheme("dark"),
+    style: {
+      ...styles.themeToggleBtn,
+      ...(theme === "dark" ? styles.themeToggleBtnActive : {})
+    }
+  }, "\u263D", " Night"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
+    onClick: () => setTheme("light"),
+    style: {
+      ...styles.themeToggleBtn,
+      ...(theme === "light" ? styles.themeToggleBtnActive : {})
+    }
+  }, "\u2600", " Day"))), /*#__PURE__*/React.createElement("div", {
     style: styles.statGrid
   }, /*#__PURE__*/React.createElement(StatBlock, {
     label: "Total XP",
@@ -1731,11 +1830,11 @@ function YouPage({
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: "#9aa7c7"
+      color: "var(--text-2)"
     }
   }, r.label), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: r.found > 0 ? "#eef0f5" : "#5a6690",
+      color: r.found > 0 ? "var(--text-1)" : "var(--text-4)",
       fontFamily: "'IBM Plex Mono', monospace"
     }
   }, r.found, "/", r.total)))), grouped.length === 0 ? /*#__PURE__*/React.createElement("div", {
@@ -1790,17 +1889,17 @@ function YouPage({
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         ...styles.badgeGlyph,
-        color: unlocked ? "#c9a24b" : "#5a6690"
+        color: unlocked ? "var(--gold-text)" : "var(--text-4)"
       }
     }, a.glyph), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
-        color: unlocked ? "#eef0f5" : "#5a6690"
+        color: unlocked ? "var(--text-1)" : "var(--text-4)"
       }
     }, a.label), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 10.5,
-        color: "#5a6690"
+        color: "var(--text-4)"
       }
     }, a.desc));
   }))));
@@ -1822,6 +1921,58 @@ function groupInventory(inventory) {
 
 // ---- small components -----------------------------------------------------
 
+function CompassWatermark() {
+  return /*#__PURE__*/React.createElement("div", {
+    style: styles.compassWatermark,
+    "aria-hidden": "true"
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 200 200",
+    width: "100%",
+    height: "100%"
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: "100",
+    cy: "100",
+    r: "92",
+    fill: "none",
+    stroke: "var(--gold-text)",
+    strokeWidth: "1"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "100",
+    cy: "100",
+    r: "70",
+    fill: "none",
+    stroke: "var(--gold-text)",
+    strokeWidth: "0.6"
+  }), [0, 45, 90, 135, 180, 225, 270, 315].map(ang => {
+    const rad = ang * Math.PI / 180;
+    const x1 = 100 + 92 * Math.cos(rad),
+      y1 = 100 + 92 * Math.sin(rad);
+    const x2 = 100 + 78 * Math.cos(rad),
+      y2 = 100 + 78 * Math.sin(rad);
+    return /*#__PURE__*/React.createElement("line", {
+      key: ang,
+      x1: x1,
+      y1: y1,
+      x2: x2,
+      y2: y2,
+      stroke: "var(--gold-text)",
+      strokeWidth: "1"
+    });
+  }), /*#__PURE__*/React.createElement("polygon", {
+    points: "100,20 112,100 100,180 88,100",
+    fill: "var(--gold-text)",
+    opacity: "0.7"
+  }), /*#__PURE__*/React.createElement("polygon", {
+    points: "20,100 100,88 180,100 100,112",
+    fill: "var(--gold-text)",
+    opacity: "0.4"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "100",
+    cy: "100",
+    r: "5",
+    fill: "var(--gold-text)"
+  })));
+}
 function LevelRing({
   pct,
   level,
@@ -1836,14 +1987,14 @@ function LevelRing({
     cy: "50",
     r: "46",
     fill: "none",
-    stroke: "#2a3358",
+    stroke: "var(--border-2)",
     strokeWidth: "3"
   }), /*#__PURE__*/React.createElement("circle", {
     cx: "50",
     cy: "50",
     r: "46",
     fill: "none",
-    stroke: "#c9a24b",
+    stroke: "var(--gold-text)",
     strokeWidth: "3",
     strokeDasharray: `${2 * Math.PI * 46}`,
     strokeDashoffset: `${2 * Math.PI * 46 * (1 - pct / 100)}`,
@@ -1856,14 +2007,14 @@ function LevelRing({
     x: "50",
     y: "46",
     textAnchor: "middle",
-    fill: "#eef0f5",
+    fill: "var(--text-1)",
     fontSize: "22",
     fontFamily: "'Fraunces', serif"
   }, level), /*#__PURE__*/React.createElement("text", {
     x: "50",
     y: "63",
     textAnchor: "middle",
-    fill: "#7b8bab",
+    fill: "var(--text-3)",
     fontSize: "9",
     letterSpacing: "1",
     fontFamily: "'IBM Plex Mono', monospace"
@@ -1944,7 +2095,7 @@ function QuestRow({
 
 const fontImports = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-input::placeholder, textarea::placeholder { color: #5a6690; }
+input::placeholder, textarea::placeholder { color: var(--text-4); }
 select { -webkit-appearance: none; appearance: none; }
 button { -webkit-tap-highlight-color: transparent; user-select: none; }
 .btn-press { transition: transform 130ms ease, opacity 130ms ease; }
@@ -1981,11 +2132,15 @@ button { -webkit-tap-highlight-color: transparent; user-select: none; }
   0%, 100% { opacity: 0.25; }
   50% { opacity: 0.9; }
 }
+@keyframes slow-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
 `;
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "radial-gradient(ellipse at top, #1a2140 0%, #10152a 55%, #0b0e1e 100%)",
+    background: "radial-gradient(ellipse at top, var(--bg-a) 0%, var(--bg-b) 55%, var(--bg-c) 100%)",
     fontFamily: "'IBM Plex Sans', sans-serif",
     position: "relative",
     overflow: "hidden"
@@ -1994,14 +2149,14 @@ const styles = {
     position: "fixed",
     inset: 0,
     pointerEvents: "none",
-    boxShadow: "inset 0 0 160px rgba(0,0,0,0.55)"
+    boxShadow: "var(--vignette)"
   },
   starfield: {
     position: "fixed",
     inset: 0,
     pointerEvents: "none",
     zIndex: 0,
-    backgroundImage: "radial-gradient(1.5px 1.5px at 12% 18%, rgba(238,240,245,0.7), transparent), " + "radial-gradient(1px 1px at 28% 8%, rgba(238,240,245,0.5), transparent), " + "radial-gradient(1.5px 1.5px at 46% 24%, rgba(201,162,75,0.6), transparent), " + "radial-gradient(1px 1px at 63% 6%, rgba(238,240,245,0.45), transparent), " + "radial-gradient(1.5px 1.5px at 78% 15%, rgba(238,240,245,0.65), transparent), " + "radial-gradient(1px 1px at 91% 28%, rgba(201,162,75,0.5), transparent), " + "radial-gradient(1.5px 1.5px at 8% 42%, rgba(238,240,245,0.4), transparent), " + "radial-gradient(1px 1px at 35% 55%, rgba(238,240,245,0.55), transparent), " + "radial-gradient(1.5px 1.5px at 70% 48%, rgba(238,240,245,0.4), transparent), " + "radial-gradient(1px 1px at 85% 60%, rgba(201,162,75,0.45), transparent)",
+    backgroundImage: "var(--decor)",
     backgroundRepeat: "no-repeat",
     animation: "twinkle 5s ease-in-out infinite"
   },
@@ -2012,6 +2167,17 @@ const styles = {
     animation: "crit-flash 380ms ease-out forwards",
     zIndex: 15,
     pointerEvents: "none"
+  },
+  compassWatermark: {
+    position: "fixed",
+    top: "50%",
+    left: "50%",
+    width: "min(85vw, 480px)",
+    height: "min(85vw, 480px)",
+    opacity: "var(--watermark-opacity)",
+    zIndex: 0,
+    pointerEvents: "none",
+    animation: "slow-spin 240s linear infinite"
   },
   body: {
     maxWidth: 640,
@@ -2024,11 +2190,11 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    borderBottom: "1px solid #262e52",
+    borderBottom: "1px solid var(--divider)",
     paddingBottom: 18
   },
   pageHeader: {
-    borderBottom: "1px solid #262e52",
+    borderBottom: "1px solid var(--divider)",
     paddingBottom: 16,
     marginBottom: 4
   },
@@ -2036,28 +2202,35 @@ const styles = {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11,
     letterSpacing: "0.2em",
-    color: "#c9a24b",
+    color: "var(--gold-text)",
     marginBottom: 4
   },
   h1: {
     fontFamily: "'Fraunces', serif",
     fontWeight: 600,
     fontSize: 28,
-    color: "#eef0f5",
+    color: "var(--text-1)",
     margin: 0,
     fontStyle: "italic"
   },
   titleLine: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11.5,
-    color: "#7b8bab",
+    color: "var(--text-3)",
     marginTop: 5,
     letterSpacing: "0.04em"
+  },
+  greeting: {
+    fontFamily: "'Fraunces', serif",
+    fontStyle: "italic",
+    fontSize: 13.5,
+    color: "var(--text-2)",
+    marginTop: 8
   },
   xpLine: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11.5,
-    color: "#7b8bab",
+    color: "var(--text-3)",
     marginTop: 14,
     textAlign: "right"
   },
@@ -2070,7 +2243,7 @@ const styles = {
   linkBtn: {
     background: "transparent",
     border: "none",
-    color: "#c9a24b",
+    color: "var(--gold-text)",
     fontSize: 12.5,
     fontFamily: "'IBM Plex Mono', monospace",
     cursor: "pointer",
@@ -2088,22 +2261,46 @@ const styles = {
     gap: 10,
     marginTop: 22
   },
+  themeToggle: {
+    display: "flex",
+    gap: 8,
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: 12,
+    padding: 5
+  },
+  themeToggleBtn: {
+    flex: 1,
+    background: "transparent",
+    border: "none",
+    borderRadius: 8,
+    padding: "9px 10px",
+    color: "var(--text-3)",
+    fontSize: 13.5,
+    fontFamily: "'IBM Plex Sans', sans-serif",
+    cursor: "pointer"
+  },
+  themeToggleBtnActive: {
+    background: "var(--gold-text)",
+    color: "var(--on-gold)",
+    fontWeight: 600
+  },
   statBlock: {
-    background: "#161d3a",
-    border: "1px solid #232c52",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 10,
     padding: "14px 16px"
   },
   statValue: {
     fontFamily: "'Fraunces', serif",
     fontSize: 26,
-    color: "#eef0f5",
+    color: "var(--text-1)",
     fontWeight: 600
   },
   statLabel: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 10.5,
-    color: "#7b8bab",
+    color: "var(--text-3)",
     letterSpacing: "0.08em",
     marginTop: 2,
     textTransform: "uppercase"
@@ -2117,7 +2314,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    background: "#161d3a",
+    background: "var(--surface)",
     border: "1px solid",
     borderRadius: 8,
     padding: "8px 10px"
@@ -2125,9 +2322,9 @@ const styles = {
   compendiumTag: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11,
-    color: "#7b8bab",
-    background: "#161d3a",
-    border: "1px solid #2a3358",
+    color: "var(--text-3)",
+    background: "var(--surface)",
+    border: "1px solid var(--border-2)",
     borderRadius: 20,
     padding: "4px 10px"
   },
@@ -2137,8 +2334,8 @@ const styles = {
     gap: "6px 14px",
     marginBottom: 14,
     padding: "10px 12px",
-    background: "#12172e",
-    border: "1px solid #232c52",
+    background: "var(--surface-2)",
+    border: "1px solid var(--border)",
     borderRadius: 8
   },
   rarityLegendItem: {
@@ -2156,9 +2353,9 @@ const styles = {
   lootRow: {
     display: "flex",
     gap: 12,
-    background: "#161d3a",
+    background: "var(--surface)",
     border: "1px solid",
-    borderColor: "#232c52",
+    borderColor: "var(--border)",
     borderRadius: 10,
     padding: "12px 14px",
     position: "relative",
@@ -2177,13 +2374,13 @@ const styles = {
   lootRowName: {
     fontFamily: "'Fraunces', serif",
     fontSize: 15.5,
-    color: "#eef0f5",
+    color: "var(--text-1)",
     fontStyle: "italic"
   },
   lootRowCount: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 12,
-    color: "#c9a24b"
+    color: "var(--gold-text)"
   },
   lootRowRarity: {
     fontFamily: "'IBM Plex Mono', monospace",
@@ -2193,7 +2390,7 @@ const styles = {
   },
   lootRowFlavor: {
     fontSize: 12.5,
-    color: "#7b8bab",
+    color: "var(--text-3)",
     marginTop: 4,
     fontStyle: "italic"
   },
@@ -2208,8 +2405,8 @@ const styles = {
     alignItems: "center",
     textAlign: "center",
     gap: 3,
-    background: "#161d3a",
-    border: "1px solid #232c52",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     padding: "10px 6px"
   },
@@ -2225,27 +2422,27 @@ const styles = {
   filterChip: {
     fontFamily: "'IBM Plex Sans', sans-serif",
     fontSize: 13,
-    color: "#9aa7c7",
+    color: "var(--text-2)",
     background: "transparent",
-    border: "1px solid #2a3358",
+    border: "1px solid var(--border-2)",
     borderRadius: 20,
     padding: "6px 12px",
     cursor: "pointer"
   },
   filterChipActive: {
-    color: "#10152a",
-    background: "#c9a24b",
-    borderColor: "#c9a24b",
+    color: "var(--on-gold)",
+    background: "var(--gold-text)",
+    borderColor: "var(--gold-text)",
     fontWeight: 500
   },
   newQuestBtn: {
     marginTop: 18,
     flex: 1,
     textAlign: "left",
-    background: "#161d3a",
-    border: "1px dashed #3a4576",
+    background: "var(--surface)",
+    border: "1px dashed var(--border-3)",
     borderRadius: 10,
-    color: "#9aa7c7",
+    color: "var(--text-2)",
     padding: "14px 16px",
     fontSize: 14,
     fontFamily: "'IBM Plex Sans', sans-serif",
@@ -2259,10 +2456,10 @@ const styles = {
     marginTop: 18,
     flex: 1,
     textAlign: "center",
-    background: "#1f2748",
-    border: "1px solid #c9a24b",
+    background: "var(--surface-4)",
+    border: "1px solid var(--gold-text)",
     borderRadius: 10,
-    color: "#c9a24b",
+    color: "var(--gold-text)",
     padding: "14px 12px",
     fontSize: 13.5,
     fontFamily: "'IBM Plex Sans', sans-serif",
@@ -2271,8 +2468,8 @@ const styles = {
   },
   form: {
     marginTop: 18,
-    background: "#161d3a",
-    border: "1px solid #2a3358",
+    background: "var(--surface)",
+    border: "1px solid var(--border-2)",
     borderRadius: 10,
     padding: 16,
     display: "flex",
@@ -2280,11 +2477,11 @@ const styles = {
     gap: 10
   },
   input: {
-    background: "#0f1430",
-    border: "1px solid #2a3358",
+    background: "var(--surface-3)",
+    border: "1px solid var(--border-2)",
     borderRadius: 6,
     padding: "10px 12px",
-    color: "#eef0f5",
+    color: "var(--text-1)",
     fontSize: 15,
     fontFamily: "'IBM Plex Sans', sans-serif",
     outline: "none"
@@ -2295,21 +2492,21 @@ const styles = {
   },
   select: {
     flex: 1,
-    background: "#0f1430",
-    border: "1px solid #2a3358",
+    background: "var(--surface-3)",
+    border: "1px solid var(--border-2)",
     borderRadius: 6,
     padding: "9px 10px",
-    color: "#eef0f5",
+    color: "var(--text-1)",
     fontSize: 13,
     fontFamily: "'IBM Plex Sans', sans-serif",
     outline: "none"
   },
   textarea: {
-    background: "#0f1430",
-    border: "1px solid #2a3358",
+    background: "var(--surface-3)",
+    border: "1px solid var(--border-2)",
     borderRadius: 6,
     padding: "10px 12px",
-    color: "#eef0f5",
+    color: "var(--text-1)",
     fontSize: 14.5,
     fontFamily: "'IBM Plex Sans', sans-serif",
     outline: "none",
@@ -2317,21 +2514,21 @@ const styles = {
   },
   primaryBtn: {
     flex: 1,
-    background: "#c9a24b",
+    background: "var(--gold-text)",
     border: "none",
     borderRadius: 6,
     padding: "10px 14px",
-    color: "#10152a",
+    color: "var(--on-gold)",
     fontWeight: 600,
     fontSize: 14,
     cursor: "pointer"
   },
   ghostBtn: {
     background: "transparent",
-    border: "1px solid #2a3358",
+    border: "1px solid var(--border-2)",
     borderRadius: 6,
     padding: "10px 14px",
-    color: "#9aa7c7",
+    color: "var(--text-2)",
     fontSize: 14,
     cursor: "pointer"
   },
@@ -2339,12 +2536,12 @@ const styles = {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11,
     letterSpacing: "0.15em",
-    color: "#5a6690",
+    color: "var(--text-4)",
     marginBottom: 10,
     textTransform: "uppercase"
   },
   empty: {
-    color: "#5a6690",
+    color: "var(--text-4)",
     fontSize: 14,
     fontStyle: "italic",
     padding: "10px 2px"
@@ -2358,23 +2555,23 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 12,
-    background: "#161d3a",
-    border: "1px solid #232c52",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 10,
     padding: "12px 12px"
   },
   cardDone: {
-    background: "#12172e",
-    borderColor: "#1c2340"
+    background: "var(--surface-2)",
+    borderColor: "var(--border-4)"
   },
   checkBtn: {
     flexShrink: 0,
     width: 26,
     height: 26,
     borderRadius: "50%",
-    border: "1.5px solid #3a4576",
+    border: "1.5px solid var(--border-3)",
     background: "transparent",
-    color: "#c9a24b",
+    color: "var(--gold-text)",
     fontSize: 13,
     cursor: "pointer",
     display: "flex",
@@ -2382,23 +2579,23 @@ const styles = {
     justifyContent: "center"
   },
   checkBtnDone: {
-    background: "#4fb3a9",
-    borderColor: "#4fb3a9",
-    color: "#0b0e1e"
+    background: "var(--success)",
+    borderColor: "var(--success)",
+    color: "var(--on-success)"
   },
   cardTitle: {
     fontSize: 15,
-    color: "#eef0f5"
+    color: "var(--text-1)"
   },
   cardTitleDone: {
-    color: "#5a6690",
+    color: "var(--text-4)",
     textDecoration: "line-through"
   },
   cardMeta: {
     marginTop: 3,
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11,
-    color: "#7b8bab",
+    color: "var(--text-3)",
     display: "flex",
     alignItems: "center"
   },
@@ -2412,16 +2609,16 @@ const styles = {
   },
   metaDot: {
     margin: "0 6px",
-    color: "#3a4576"
+    color: "var(--border-3)"
   },
   metaXp: {
-    color: "#c9a24b"
+    color: "var(--gold-text)"
   },
   deleteBtn: {
     flexShrink: 0,
     background: "transparent",
     border: "none",
-    color: "#3a4576",
+    color: "var(--border-3)",
     fontSize: 20,
     lineHeight: 1,
     cursor: "pointer",
@@ -2435,38 +2632,38 @@ const styles = {
   tipRow: {
     display: "flex",
     gap: 12,
-    background: "#161d3a",
-    border: "1px solid #232c52",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     padding: "10px 12px",
     alignItems: "baseline"
   },
   tipRowLocked: {
-    background: "#12172e",
-    borderColor: "#1c2340"
+    background: "var(--surface-2)",
+    borderColor: "var(--border-4)"
   },
   tipNumber: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11,
-    color: "#c9a24b",
+    color: "var(--gold-text)",
     flexShrink: 0,
     width: 20
   },
   tipText: {
     fontSize: 13.5,
-    color: "#dbe0ee",
+    color: "var(--text-1)",
     lineHeight: 1.4
   },
   tipTextLocked: {
-    color: "#5a6690",
+    color: "var(--text-4)",
     fontStyle: "italic"
   },
   noteForm: {
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    background: "#161d3a",
-    border: "1px solid #2a3358",
+    background: "var(--surface)",
+    border: "1px solid var(--border-2)",
     borderRadius: 10,
     padding: 14
   },
@@ -2474,8 +2671,8 @@ const styles = {
     display: "flex",
     gap: 12,
     alignItems: "flex-start",
-    background: "#161d3a",
-    border: "1px solid #232c52",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: 10,
     padding: "12px 14px"
   },
@@ -2483,13 +2680,13 @@ const styles = {
     fontFamily: "'Fraunces', serif",
     fontStyle: "italic",
     fontSize: 15,
-    color: "#eef0f5",
+    color: "var(--text-1)",
     lineHeight: 1.4
   },
   noteDate: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 10.5,
-    color: "#7b8bab",
+    color: "var(--text-3)",
     marginTop: 5,
     letterSpacing: "0.05em",
     textTransform: "uppercase"
@@ -2500,8 +2697,8 @@ const styles = {
     right: 0,
     bottom: 0,
     display: "flex",
-    background: "rgba(16,21,42,0.96)",
-    borderTop: "1px solid #262e52",
+    background: "rgba(var(--nav-rgb),0.94)",
+    borderTop: "1px solid var(--divider)",
     backdropFilter: "blur(6px)",
     zIndex: 30,
     paddingBottom: "env(safe-area-inset-bottom, 0px)"
@@ -2510,7 +2707,7 @@ const styles = {
     flex: 1,
     background: "transparent",
     border: "none",
-    color: "#5a6690",
+    color: "var(--text-4)",
     padding: "10px 4px 8px",
     display: "flex",
     flexDirection: "column",
@@ -2520,7 +2717,7 @@ const styles = {
     position: "relative"
   },
   navBtnActive: {
-    color: "#c9a24b"
+    color: "var(--gold-text)"
   },
   navDot: {
     position: "absolute",
@@ -2528,7 +2725,7 @@ const styles = {
     width: 4,
     height: 4,
     borderRadius: "50%",
-    background: "#c9a24b",
+    background: "var(--gold-text)",
     transition: "opacity 200ms ease"
   },
   confettiLayer: {
@@ -2562,13 +2759,13 @@ const styles = {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11,
     letterSpacing: "0.2em",
-    color: "#c9a24b",
+    color: "var(--gold-text)",
     marginBottom: 6
   },
   revealQuestTitle: {
     fontFamily: "'IBM Plex Sans', sans-serif",
     fontSize: 13,
-    color: "#7b8bab",
+    color: "var(--text-3)",
     marginBottom: 10
   },
   lootRarity: {
@@ -2581,7 +2778,7 @@ const styles = {
     fontFamily: "'Fraunces', serif",
     fontStyle: "italic",
     fontSize: 20,
-    color: "#eef0f5",
+    color: "var(--text-1)",
     marginBottom: 12
   },
   xpBreakdown: {
@@ -2590,13 +2787,13 @@ const styles = {
     gap: 2,
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11.5,
-    color: "#9aa7c7",
+    color: "var(--text-2)",
     marginBottom: 10
   },
   totalXp: {
     fontFamily: "'Fraunces', serif",
     fontSize: 26,
-    color: "#c9a24b",
+    color: "var(--gold-text)",
     fontWeight: 600
   },
   levelUpOverlay: {
@@ -2612,8 +2809,8 @@ const styles = {
     padding: 24
   },
   levelUpCard: {
-    background: "linear-gradient(180deg, #1c2447, #12172e)",
-    border: "1px solid #3a4576",
+    background: "linear-gradient(180deg, var(--surface-5), var(--surface-2))",
+    border: "1px solid var(--border-3)",
     borderRadius: 16,
     padding: "34px 30px",
     textAlign: "center",
@@ -2625,20 +2822,20 @@ const styles = {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 12,
     letterSpacing: "0.3em",
-    color: "#c9a24b",
+    color: "var(--gold-text)",
     marginBottom: 8
   },
   levelUpNumber: {
     fontFamily: "'Fraunces', serif",
     fontSize: 64,
-    color: "#eef0f5",
+    color: "var(--text-1)",
     lineHeight: 1,
     fontWeight: 700
   },
   levelUpTitle: {
     fontFamily: "'IBM Plex Sans', sans-serif",
     fontSize: 15,
-    color: "#9aa7c7",
+    color: "var(--text-2)",
     margin: "10px 0 22px"
   },
   packToastWrap: {
@@ -2655,9 +2852,9 @@ const styles = {
   packToast: {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 12.5,
-    color: "#10152a",
-    background: "#c9a24b",
-    border: "1px solid #c9a24b",
+    color: "var(--on-gold)",
+    background: "var(--gold-text)",
+    border: "1px solid var(--gold-text)",
     borderRadius: 20,
     padding: "9px 16px",
     boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
@@ -2678,8 +2875,8 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 12,
-    background: "#161d3a",
-    border: "1px solid #c9a24b",
+    background: "var(--surface)",
+    border: "1px solid var(--gold-text)",
     borderRadius: 12,
     padding: "12px 16px",
     maxWidth: 380,
@@ -2688,16 +2885,16 @@ const styles = {
   },
   toastGlyph: {
     fontSize: 22,
-    color: "#c9a24b"
+    color: "var(--gold-text)"
   },
   toastLabel: {
     fontSize: 13.5,
-    color: "#eef0f5",
+    color: "var(--text-1)",
     fontWeight: 500
   },
   toastDesc: {
     fontSize: 11.5,
-    color: "#7b8bab",
+    color: "var(--text-3)",
     marginTop: 2
   }
 };
