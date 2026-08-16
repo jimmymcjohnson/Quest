@@ -1823,7 +1823,9 @@ function YouPage({
   unlockedAchievements,
   discoveredNames,
   theme,
-  setTheme
+  setTheme,
+  pushStatus,
+  subscribeToPush
 }) {
   const totalCompleted = completed.length;
   const grouped = groupInventory(inventory);
@@ -1874,6 +1876,29 @@ function YouPage({
       ...(theme === "light" ? styles.themeToggleBtnActive : {})
     }
   }, "\u2600", " Day"))), /*#__PURE__*/React.createElement("div", {
+    }), /*#__PURE__*/React.createElement("section", {
+    style: {
+      marginTop: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: styles.sectionLabel
+  }, "Notifications"), pushStatus === "subscribed" ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--success)",
+      fontSize: 13
+    }
+  }, "✓ Subscribed to push notifications") : /*#__PURE__*/React.createElement("button", {
+    className: "btn-press",
+    style: styles.primaryBtn,
+    onClick: subscribeToPush
+  }, pushStatus === "requesting" ? "Requesting…" : pushStatus === "denied" ? "Permission denied — try again" : "Enable Notifications"), pushStatus === "error" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#d97b6c",
+      fontSize: 12,
+      marginTop: 6
+    }
+  }, "Something went wrong — check the browser console.")),
+                                          
     style: styles.statGrid
   }, /*#__PURE__*/React.createElement(StatBlock, {
     label: "Total XP",
