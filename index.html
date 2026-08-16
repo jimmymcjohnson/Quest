@@ -355,14 +355,32 @@ window.storage = {
     return { keys, prefix, shared: !!shared };
   }
 };
+const VAPID_PUBLIC_KEY = "BKzJaLnOFiKZQ8lP_35Ckq5a9WqUWjkIUxwHoXOThYEJHrz9frIRjSW1SyPyz9Y3MyfgFtMoPdPsOCqUob2jagQ";
 
-try {
-  if ("serviceWorker" in navigator && (location.protocol === "http:" || location.protocol === "https:")) {
-    navigator.serviceWorker.getRegistrations().then((regs) => {
-      regs.forEach((r) => r.unregister());
-    }).catch(() => {});
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+async function setupPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  const reg = await navigator.serviceWorker.register("sw.js");
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") return null;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
   }
-} catch (e) {}
+  console.log("push subscription:", JSON.stringify(sub));
+  return sub;
+}
+
+window.setupPush = setupPush;
 </script>
 
 <script>
@@ -981,6 +999,7 @@ function QuestLedger() {
   const [loaded, setLoaded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [pushStatus, setPushStatus] = useState("idle");
   const [form, setForm] = useState({
     title: "",
     category: "body",
