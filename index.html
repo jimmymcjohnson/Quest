@@ -703,102 +703,167 @@ const ACHIEVEMENTS = [{
 }];
 const CONFETTI_COLORS = ["#c9a24b", "#4fb3a9", "#5b8ef2", "#a45bd6", "#eef0f5"];
 const QUEST_LIBRARY = {
-  body: [{
-    title: "Take a 20-minute walk",
-    difficulty: "easy"
-  }, {
-    title: "Drink 8 glasses of water today",
-    difficulty: "easy"
-  }, {
-    title: "Try a new stretching routine",
-    difficulty: "easy"
-  }, {
-    title: "Do a 15-minute home workout",
-    difficulty: "medium"
-  }, {
-    title: "Go for a run or bike ride",
-    difficulty: "hard"
-  }],
-  mind: [{
-    title: "Read 20 pages of a book",
-    difficulty: "easy"
-  }, {
-    title: "Do a 10-minute meditation",
-    difficulty: "easy"
-  }, {
-    title: "Learn 5 new words in a language you're studying",
-    difficulty: "easy"
-  }, {
-    title: "Solve a puzzle or brain teaser",
-    difficulty: "medium"
-  }, {
-    title: "Spend an hour learning a new skill",
-    difficulty: "hard"
-  }],
-  work: [{
-    title: "Plan tomorrow's top 3 priorities",
-    difficulty: "easy"
-  }, {
-    title: "Organize your desk or workspace",
-    difficulty: "easy"
-  }, {
-    title: "Clear your inbox to zero",
-    difficulty: "medium"
-  }, {
-    title: "Tackle your most-avoided task",
-    difficulty: "hard"
-  }, {
-    title: "Finish a project you've been putting off",
-    difficulty: "epic"
-  }],
-  kin: [{
-    title: "Call or text a friend you haven't talked to in a while",
-    difficulty: "easy"
-  }, {
-    title: "Write a thank-you note to someone",
-    difficulty: "easy"
-  }, {
-    title: "Have a screen-free dinner with someone",
-    difficulty: "easy"
-  }, {
-    title: "Do something kind for a family member",
-    difficulty: "medium"
-  }, {
-    title: "Plan a get-together with friends or family",
-    difficulty: "medium"
-  }],
-  keep: [{
-    title: "Make your bed",
-    difficulty: "easy"
-  }, {
-    title: "Do a 10-minute declutter of one space",
-    difficulty: "easy"
-  }, {
-    title: "Do a load of laundry start to finish",
-    difficulty: "easy"
-  }, {
-    title: "Deep clean the kitchen",
-    difficulty: "medium"
-  }, {
-    title: "Tackle a home project you've been avoiding",
-    difficulty: "hard"
-  }],
-  other: [{
-    title: "Spend 20 minutes on a hobby",
-    difficulty: "easy"
-  }, {
-    title: "Do one thing just for fun",
-    difficulty: "easy"
-  }, {
-    title: "Unplug from screens for an hour",
-    difficulty: "medium"
-  }, {
-    title: "Try something you've never done before",
-    difficulty: "medium"
-  }, {
-    title: "Step outside your comfort zone in a small way",
-    difficulty: "medium"
-  }]
+  body: [
+    { title: "Take a 20-minute walk", difficulty: "easy" },
+    { title: "Drink 8 glasses of water today", difficulty: "easy" },
+    { title: "Try a new stretching routine", difficulty: "easy" },
+    { title: "Do 20 push-ups throughout the day", difficulty: "easy" },
+    { title: "Take the stairs instead of the elevator all day", difficulty: "easy" },
+    { title: "Foam roll or stretch your tight muscles", difficulty: "easy" },
+    { title: "Track everything you eat today", difficulty: "easy" },
+    { title: "Go to bed 30 minutes earlier tonight", difficulty: "easy" },
+    { title: "Do a 5-minute morning stretch", difficulty: "easy" },
+    { title: "Do a 15-minute home workout", difficulty: "medium" },
+    { title: "Try a new healthy recipe", difficulty: "medium" },
+    { title: "Do a full-body strength workout", difficulty: "medium" },
+    { title: "Try a yoga class or video", difficulty: "medium" },
+    { title: "Go swimming", difficulty: "medium" },
+    { title: "Hike a local trail", difficulty: "medium" },
+    { title: "Try a dance workout video", difficulty: "medium" },
+    { title: "Take a cold shower for recovery", difficulty: "medium" },
+    { title: "Meal prep healthy lunches for the week", difficulty: "medium" },
+    { title: "Sign up for a fitness class or gym trial", difficulty: "medium" },
+    { title: "Go for a run or bike ride", difficulty: "hard" },
+    { title: "Do a 30-minute HIIT session", difficulty: "hard" },
+    { title: "Run a 5K", difficulty: "hard" },
+    { title: "Try a new sport you've never played", difficulty: "hard" },
+    { title: "Complete a full workout program day", difficulty: "hard" },
+    { title: "Train for and complete a mini fitness challenge", difficulty: "epic" }
+  ],
+  mind: [
+    { title: "Read 20 pages of a book", difficulty: "easy" },
+    { title: "Do a 10-minute meditation", difficulty: "easy" },
+    { title: "Learn 5 new words in a language you're studying", difficulty: "easy" },
+    { title: "Write a journal entry", difficulty: "easy" },
+    { title: "Do a crossword or sudoku", difficulty: "easy" },
+    { title: "Listen to an educational podcast episode", difficulty: "easy" },
+    { title: "Watch a documentary on a new topic", difficulty: "easy" },
+    { title: "Practice a musical instrument for 15 minutes", difficulty: "easy" },
+    { title: "Free-write for 10 minutes with no editing", difficulty: "easy" },
+    { title: "Do a language-learning app lesson", difficulty: "easy" },
+    { title: "Practice mental math for 10 minutes", difficulty: "easy" },
+    { title: "Solve a puzzle or brain teaser", difficulty: "medium" },
+    { title: "Read a long-form article outside your usual interests", difficulty: "medium" },
+    { title: "Try a memory exercise or brain-training app", difficulty: "medium" },
+    { title: "Outline an idea for a personal project", difficulty: "medium" },
+    { title: "Write a short story or poem", difficulty: "medium" },
+    { title: "Research a topic you know nothing about for 30 minutes", difficulty: "medium" },
+    { title: "Take a practice test or quiz for a skill you're building", difficulty: "medium" },
+    { title: "Play a full chess or strategy game", difficulty: "medium" },
+    { title: "Spend an hour learning a new skill", difficulty: "hard" },
+    { title: "Complete an online course module", difficulty: "hard" },
+    { title: "Draft an essay on something you believe in", difficulty: "hard" },
+    { title: "Memorize a poem or short speech", difficulty: "hard" },
+    { title: "Finish a full book chapter and summarize it", difficulty: "epic" }
+  ],
+  work: [
+    { title: "Plan tomorrow's top 3 priorities", difficulty: "easy" },
+    { title: "Organize your desk or workspace", difficulty: "easy" },
+    { title: "Write a to-do list for the week", difficulty: "easy" },
+    { title: "Reply to 3 overdue emails", difficulty: "easy" },
+    { title: "Update your calendar for the week", difficulty: "easy" },
+    { title: "Back up your files", difficulty: "easy" },
+    { title: "Set 3 goals for the month", difficulty: "easy" },
+    { title: "Tidy your digital files and folders", difficulty: "easy" },
+    { title: "Clear your inbox to zero", difficulty: "medium" },
+    { title: "Draft a project outline", difficulty: "medium" },
+    { title: "Prep for an upcoming meeting", difficulty: "medium" },
+    { title: "Learn a new tool or shortcut for your job", difficulty: "medium" },
+    { title: "Review and revise your resume", difficulty: "medium" },
+    { title: "Reach out to a professional contact", difficulty: "medium" },
+    { title: "Automate one repetitive task", difficulty: "medium" },
+    { title: "Give feedback to a colleague", difficulty: "medium" },
+    { title: "Create a system for tracking tasks", difficulty: "medium" },
+    { title: "Tackle your most-avoided task", difficulty: "hard" },
+    { title: "Do a 90-minute deep work session, no distractions", difficulty: "hard" },
+    { title: "Tackle a task you've procrastinated on for weeks", difficulty: "hard" },
+    { title: "Draft a proposal or pitch", difficulty: "hard" },
+    { title: "Complete a certification module or training", difficulty: "hard" },
+    { title: "Reorganize your entire task management system", difficulty: "epic" },
+    { title: "Finish a project you've been putting off", difficulty: "epic" },
+    { title: "Ship a project you've been sitting on", difficulty: "epic" }
+  ],
+  kin: [
+    { title: "Call or text a friend you haven't talked to in a while", difficulty: "easy" },
+    { title: "Write a thank-you note to someone", difficulty: "easy" },
+    { title: "Have a screen-free dinner with someone", difficulty: "easy" },
+    { title: "Send a good morning text to someone you care about", difficulty: "easy" },
+    { title: "Compliment someone genuinely", difficulty: "easy" },
+    { title: "Ask a family member about their day in detail", difficulty: "easy" },
+    { title: "Share a memory with someone who was there", difficulty: "easy" },
+    { title: "Send a funny meme to make someone laugh", difficulty: "easy" },
+    { title: "Write a letter to someone far away", difficulty: "easy" },
+    { title: "Video call a relative", difficulty: "easy" },
+    { title: "Take someone out for coffee", difficulty: "easy" },
+    { title: "Do something kind for a family member", difficulty: "medium" },
+    { title: "Plan a get-together with friends or family", difficulty: "medium" },
+    { title: "Cook a meal for someone", difficulty: "medium" },
+    { title: "Plan a small surprise for someone", difficulty: "medium" },
+    { title: "Help someone with a task without being asked", difficulty: "medium" },
+    { title: "Reconnect with an old friend", difficulty: "medium" },
+    { title: "Have a heart-to-heart conversation with someone", difficulty: "medium" },
+    { title: "Introduce two friends who should know each other", difficulty: "medium" },
+    { title: "Host a small gathering", difficulty: "medium" },
+    { title: "Give someone your undivided attention for an hour", difficulty: "medium" },
+    { title: "Tell someone 3 things you appreciate about them", difficulty: "medium" },
+    { title: "Plan a weekend trip with loved ones", difficulty: "hard" },
+    { title: "Resolve a lingering conflict with someone", difficulty: "hard" },
+    { title: "Organize a family reunion or big get-together", difficulty: "epic" }
+  ],
+  keep: [
+    { title: "Make your bed", difficulty: "easy" },
+    { title: "Do a 10-minute declutter of one space", difficulty: "easy" },
+    { title: "Do a load of laundry start to finish", difficulty: "easy" },
+    { title: "Wipe down kitchen counters", difficulty: "easy" },
+    { title: "Vacuum one room", difficulty: "easy" },
+    { title: "Take out the trash and recycling", difficulty: "easy" },
+    { title: "Water your plants", difficulty: "easy" },
+    { title: "Wash the dishes right after a meal", difficulty: "easy" },
+    { title: "Organize your closet for 15 minutes", difficulty: "easy" },
+    { title: "Dust a room", difficulty: "easy" },
+    { title: "Clean your bathroom sink and mirror", difficulty: "easy" },
+    { title: "Deep clean the kitchen", difficulty: "medium" },
+    { title: "Sort through mail and paperwork", difficulty: "medium" },
+    { title: "Clean out your fridge", difficulty: "medium" },
+    { title: "Vacuum and mop the whole house", difficulty: "medium" },
+    { title: "Organize your pantry", difficulty: "medium" },
+    { title: "Deep clean the bathroom", difficulty: "medium" },
+    { title: "Wash your car inside and out", difficulty: "medium" },
+    { title: "Declutter one full closet", difficulty: "medium" },
+    { title: "Clean the windows", difficulty: "medium" },
+    { title: "Tackle a home project you've been avoiding", difficulty: "hard" },
+    { title: "Reorganize your garage or storage space", difficulty: "hard" },
+    { title: "Do a full spring clean of one room", difficulty: "hard" },
+    { title: "Fix a small home repair you've been putting off", difficulty: "hard" },
+    { title: "Overhaul your entire living space", difficulty: "epic" }
+  ],
+  other: [
+    { title: "Spend 20 minutes on a hobby", difficulty: "easy" },
+    { title: "Do one thing just for fun", difficulty: "easy" },
+    { title: "Take a walk with no destination", difficulty: "easy" },
+    { title: "Listen to a new music genre", difficulty: "easy" },
+    { title: "Doodle or sketch for 10 minutes", difficulty: "easy" },
+    { title: "Watch the sunset or sunrise", difficulty: "easy" },
+    { title: "Try a new coffee or tea", difficulty: "easy" },
+    { title: "Take a photo of something beautiful", difficulty: "easy" },
+    { title: "Write down 3 things you're grateful for", difficulty: "easy" },
+    { title: "Unplug from screens for an hour", difficulty: "medium" },
+    { title: "Try something you've never done before", difficulty: "medium" },
+    { title: "Step outside your comfort zone in a small way", difficulty: "medium" },
+    { title: "Visit a place in your town you've never been", difficulty: "medium" },
+    { title: "Try a new restaurant or cuisine", difficulty: "medium" },
+    { title: "Start a small creative project", difficulty: "medium" },
+    { title: "Volunteer for an hour", difficulty: "medium" },
+    { title: "Attend a local event or meetup", difficulty: "medium" },
+    { title: "Try a recipe from a different culture", difficulty: "medium" },
+    { title: "Spend an afternoon with no plans or agenda", difficulty: "medium" },
+    { title: "Learn a magic trick or party trick", difficulty: "medium" },
+    { title: "Plan a small solo adventure", difficulty: "hard" },
+    { title: "Try an extreme or adrenaline activity", difficulty: "hard" },
+    { title: "Take a class in something completely new to you", difficulty: "hard" },
+    { title: "Go somewhere you've never been before", difficulty: "hard" },
+    { title: "Plan and take a trip you've always wanted", difficulty: "epic" }
+  ]
 };
 function flattenLibrary() {
   return Object.entries(QUEST_LIBRARY).flatMap(([cat, arr]) => arr.map(q => ({
