@@ -1127,6 +1127,20 @@ function QuestLedger() {
   function deleteNote(id) {
     setNotes(prev => prev.filter(n => n.id !== id));
   }
+  async function subscribeToPush() {
+  setPushStatus("requesting");
+  try {
+    const sub = await window.setupPush();
+    if (sub) {
+      setPushStatus("subscribed");
+    } else {
+      setPushStatus("denied");
+    }
+  } catch (e) {
+    console.error(e);
+    setPushStatus("error");
+  }
+}
   function computeStreak(days) {
     if (days.length === 0) return 0;
     const set = new Set(days);
