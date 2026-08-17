@@ -15,6 +15,7 @@
 <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png" />
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png" />
 <link rel="icon" href="icons/icon-192.png" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <style>
   html, body { margin: 0; padding: 0; background: #10152a; overscroll-behavior: none; }
@@ -357,11 +358,39 @@ window.storage = {
 };
 const VAPID_PUBLIC_KEY = "BKzJaLnOFiKZQ8lP_35Ckq5a9WqUWjkIUxwHoXOThYEJHrz9frIRjSW1SyPyz9Y3MyfgFtMoPdPsOCqUob2jagQ";
 
+const SUPABASE_URL = "https://aisirnetacwewosppucz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpc2lybmV0YWN3ZXdvc3BwdWN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MjIwNDcsImV4cCI6MjEwMjQ5ODA0N30.l-937Z-ElImTC7fKoV3mt4fkFwFHcE5JUU0YBBQzw9U";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+async function saveSubscriptionRow(sub) {
+  const endpoint = sub.endpoint;
+  const { data: existing } = await supabaseClient
+    .from("push_subscribers")
+    .select("id")
+    .eq("subscription->>endpoint", endpoint)
+    .maybeSingle();
+  if (existing) {
+    localStorage.setItem("sidequest:supabase_row_id", existing.id);
+    return existing.id;
+  }
+  const { data, error } = await supabaseClient
+    .from("push_subscribers")
+    .insert({ subscription: sub })
+    .select("id")
+    .single();
+  if (error) {
+    console.error("failed to save subscription:", error);
+    return null;
+  }
+  localStorage.setItem("sidequest:supabase_row_id", data.id);
+  return data.id;
 }
 
 async function setupPush() {
@@ -377,10 +406,12 @@ async function setupPush() {
     });
   }
   console.log("push subscription:", JSON.stringify(sub));
+  await saveSubscriptionRow(sub.toJSON ? sub.toJSON() : sub);
   return sub;
 }
 
 window.setupPush = setupPush;
+window.supabaseClient = supabaseClient;
 </script>
 
 <script>
@@ -1000,6 +1031,8 @@ function QuestLedger() {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("all");
   const [pushStatus, setPushStatus] = useState("idle");
+  const [dailyXpGoal, setDailyXpGoal] = useState(100);
+  const [dailyXpEarned, setDailyXpEarned] = useState({});
   const [form, setForm] = useState({
     title: "",
     category: "body",
@@ -1027,6 +1060,8 @@ function QuestLedger() {
         setDiscoveredNames(s.discoveredNames || []);
         setNotes(s.notes || []);
         setTheme(s.theme === "light" ? "light" : "dark");
+        setDailyXpGoal(s.dailyXpGoal || 100);
+        setDailyXpEarned(s.dailyXpEarned || {});
       }
       setLoaded(true);
     })();
@@ -1042,9 +1077,11 @@ function QuestLedger() {
       unlockedAchievements,
       discoveredNames,
       notes,
-      theme
+      theme,
+      dailyXpGoal,
+      dailyXpEarned
     });
-  }, [quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames, notes, theme, loaded, persist]);
+  }, [quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames, notes, theme, dailyXpGoal, dailyXpEarned, loaded, persist]);
   useEffect(() => {
     if (toastQueue.length === 0) return;
     if (toastTimer.current) return;
@@ -1172,6 +1209,11 @@ function QuestLedger() {
     } : x);
     const nextTotalXp = totalXp + totalGain;
     const nextCompletedDays = completedDays.includes(key) ? completedDays : [...completedDays, key].sort();
+    const nextDailyXpEarned = {
+      ...dailyXpEarned,
+      [key]: (dailyXpEarned[key] || 0) + totalGain
+    };
+    setDailyXpEarned(nextDailyXpEarned);
     const nextInventory = [...inventory, {
       id: uid(),
       ...loot,
@@ -1281,7 +1323,11 @@ function QuestLedger() {
     deleteNote,
     theme,
     setTheme,
-    subscribeToPush
+    subscribeToPush,
+    pushStatus,
+    dailyXpGoal,
+    setDailyXpGoal,
+    dailyXpEarned
   };
   if (!loaded) {
     return /*#__PURE__*/React.createElement("div", {
@@ -1825,7 +1871,10 @@ function YouPage({
   theme,
   setTheme,
   pushStatus,
-  subscribeToPush
+  subscribeToPush,
+  dailyXpGoal,
+  setDailyXpGoal,
+  dailyXpEarned
 }) {
   const totalCompleted = completed.length;
   const grouped = groupInventory(inventory);
@@ -1876,6 +1925,27 @@ function YouPage({
       ...(theme === "light" ? styles.themeToggleBtnActive : {})
     }
  }, "\u2600", " Day"))), /*#__PURE__*/React.createElement("section", {
+    style: {
+      marginTop: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: styles.sectionLabel
+  }, "Daily XP Goal"), /*#__PURE__*/React.createElement("div", {
+    style: styles.form
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: 10,
+    step: 10,
+    value: dailyXpGoal,
+    onChange: e => setDailyXpGoal(Math.max(10, Number(e.target.value) || 0)),
+    style: styles.input
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'IBM Plex Mono', monospace",
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, (dailyXpEarned[todayKey()] || 0), " / ", dailyXpGoal, " XP today"))), /*#__PURE__*/React.createElement("section", {
     style: {
       marginTop: 22
     }
