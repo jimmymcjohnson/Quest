@@ -1083,6 +1083,25 @@ function QuestLedger() {
     });
   }, [quests, totalXp, completedDays, inventory, unlockedAchievements, discoveredNames, notes, theme, dailyXpGoal, dailyXpEarned, loaded, persist]);
   useEffect(() => {
+    if (!loaded) return;
+    const rowId = localStorage.getItem("sidequest:supabase_row_id");
+    if (!rowId) return;
+    const activeCount = quests.filter(q => q.status === "active").length;
+    const today = todayKey();
+    window.supabaseClient
+      .from("push_subscribers")
+      .update({
+        daily_xp_goal: dailyXpGoal,
+        daily_xp_earned: dailyXpEarned[today] || 0,
+        today_key: today,
+        active_quest_count: activeCount
+      })
+      .eq("id", rowId)
+      .then(({ error }) => {
+        if (error) console.error("supabase sync failed:", error);
+      });
+  }, [dailyXpGoal, dailyXpEarned, quests, loaded]);
+  useEffect(() => {
     if (toastQueue.length === 0) return;
     if (toastTimer.current) return;
     toastTimer.current = setTimeout(() => {
