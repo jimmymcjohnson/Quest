@@ -635,6 +635,33 @@ const TITLES = [{
 }, {
   min: 15,
   title: "Legend"
+}, {
+  min: 20,
+  title: "Pathfinder"
+}, {
+  min: 25,
+  title: "Ranger"
+}, {
+  min: 30,
+  title: "Sentinel"
+}, {
+  min: 35,
+  title: "Warden"
+}, {
+  min: 40,
+  title: "Paragon"
+}, {
+  min: 50,
+  title: "Mythic"
+}, {
+  min: 60,
+  title: "Ascendant"
+}, {
+  min: 75,
+  title: "Immortal"
+}, {
+  min: 100,
+  title: "Eternal"
 }];
 function getTitle(level) {
   let t = TITLES[0].title;
@@ -749,6 +776,138 @@ const ACHIEVEMENTS = [{
   desc: `Discover all ${TOTAL_UNIQUE_LOOT} items`,
   glyph: "\u2318",
   check: s => s.uniqueLootCount >= TOTAL_UNIQUE_LOOT
+}, {
+  id: "hundred_quests",
+  label: "Centurion",
+  desc: "Complete 100 quests",
+  glyph: "\u2694\uFE0F",
+  check: s => s.totalCompleted >= 100
+}, {
+  id: "two_hundred_quests",
+  label: "Unstoppable",
+  desc: "Complete 200 quests",
+  glyph: "\u269A",
+  check: s => s.totalCompleted >= 200
+}, {
+  id: "hard_ten",
+  label: "Hardened",
+  desc: "Complete 10 Hard quests",
+  glyph: "\u2620",
+  check: s => s.completedHard >= 10
+}, {
+  id: "epic_five",
+  label: "Epic Chaser",
+  desc: "Complete 5 Epic quests",
+  glyph: "\u25C8",
+  check: s => s.completedEpic >= 5
+}, {
+  id: "two_month_streak",
+  label: "Forged in Habit",
+  desc: "Reach a 60-day streak",
+  glyph: "\u2694",
+  check: s => s.streak >= 60
+}, {
+  id: "hundred_streak",
+  label: "Undying Flame",
+  desc: "Reach a 100-day streak",
+  glyph: "\u2668",
+  check: s => s.streak >= 100
+}, {
+  id: "level20",
+  label: "Trailblazer",
+  desc: "Reach level 20",
+  glyph: "\u2727",
+  check: s => s.level >= 20
+}, {
+  id: "level25",
+  label: "Ranger Rising",
+  desc: "Reach level 25",
+  glyph: "\u2732",
+  check: s => s.level >= 25
+}, {
+  id: "level30",
+  label: "Sentinel's Watch",
+  desc: "Reach level 30",
+  glyph: "\u26E8",
+  check: s => s.level >= 30
+}, {
+  id: "level40",
+  label: "Paragon's Path",
+  desc: "Reach level 40",
+  glyph: "\u2733",
+  check: s => s.level >= 40
+}, {
+  id: "level50",
+  label: "Mythmaker",
+  desc: "Reach level 50",
+  glyph: "\u2747",
+  check: s => s.level >= 50
+}, {
+  id: "level75",
+  label: "Beyond Mortal",
+  desc: "Reach level 75",
+  glyph: "\u269B",
+  check: s => s.level >= 75
+}, {
+  id: "level100",
+  label: "The Eternal",
+  desc: "Reach level 100",
+  glyph: "\u2721\uFE0F",
+  check: s => s.level >= 100
+}, {
+  id: "xp_5000",
+  label: "XP Hoarder",
+  desc: "Earn 5,000 total XP",
+  glyph: "\u2726\uFE0F",
+  check: s => s.totalXp >= 5000
+}, {
+  id: "xp_10000",
+  label: "XP Legend",
+  desc: "Earn 10,000 total XP",
+  glyph: "\u2B51",
+  check: s => s.totalXp >= 10000
+}, {
+  id: "loot_50",
+  label: "Vault Keeper",
+  desc: "Earn 50 pieces of loot",
+  glyph: "\u25A0",
+  check: s => s.lootCount >= 50
+}, {
+  id: "body_master",
+  label: "Body of Iron",
+  desc: "Complete 10 Body quests",
+  glyph: "\u2694",
+  check: s => (s.categoryCompleted.body || 0) >= 10
+}, {
+  id: "mind_master",
+  label: "Sharp Mind",
+  desc: "Complete 10 Mind quests",
+  glyph: "\u2727",
+  check: s => (s.categoryCompleted.mind || 0) >= 10
+}, {
+  id: "work_master",
+  label: "Master Craftsman",
+  desc: "Complete 10 Work quests",
+  glyph: "\u2692",
+  check: s => (s.categoryCompleted.work || 0) >= 10
+}, {
+  id: "kin_master",
+  label: "Beloved",
+  desc: "Complete 10 Kin quests",
+  glyph: "\u2665",
+  check: s => (s.categoryCompleted.kin || 0) >= 10
+}, {
+  id: "keep_master",
+  label: "Keeper of the Hearth",
+  desc: "Complete 10 Keep quests",
+  glyph: "\u2302",
+  check: s => (s.categoryCompleted.keep || 0) >= 10
+}, {
+  id: "other_master",
+  label: "Free Spirit",
+  desc: "Complete 10 Other quests",
+  glyph: "\u2731",
+  check: s => (s.categoryCompleted.other || 0) >= 10
 }];
 const CONFETTI_COLORS = ["#c9a24b", "#4fb3a9", "#5b8ef2", "#a45bd6", "#eef0f5"];
 const QUEST_LIBRARY = {
@@ -1251,13 +1410,19 @@ function QuestLedger() {
     const snapshot = {
       totalCompleted: nextQuests.filter(x => x.status === "completed").length,
       completedEpic: nextQuests.filter(x => x.status === "completed" && x.difficulty === "epic").length,
+      completedHard: nextQuests.filter(x => x.status === "completed" && x.difficulty === "hard").length,
       streak: streakAfter,
       lootCount: nextInventory.length,
       level: after,
+      totalXp: nextTotalXp,
       uniqueLootCount: nextDiscovered.length,
       hasRare: nextInventory.some(i => i.tier >= 2),
       hasEpic: nextInventory.some(i => i.tier >= 3),
-      hasLegendary: nextInventory.some(i => i.tier >= 4)
+      hasLegendary: nextInventory.some(i => i.tier >= 4),
+      categoryCompleted: CATEGORIES.reduce((acc, c) => {
+        acc[c.id] = nextQuests.filter(x => x.status === "completed" && x.category === c.id).length;
+        return acc;
+      }, {})
     };
     const newlyUnlocked = ACHIEVEMENTS.filter(a => !unlockedAchievements.includes(a.id) && a.check(snapshot));
     if (newlyUnlocked.length > 0) {
